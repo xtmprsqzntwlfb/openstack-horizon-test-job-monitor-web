@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenStack Horizon Test Job Monitor</title>
+    <meta name="description" content="Real-time monitoring dashboard for OpenStack Horizon test jobs running on Zuul CI">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f1419;
+            --bg-secondary: #1a1f2e;
+            --bg-card: #242b3d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --border-color: #30363d;
+            --success-color: #3fb950;
+            --warning-color: #d29922;
+            --danger-color: #f85149;
+            --info-color: #58a6ff;
+            --accent-color: #58a6ff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: var(--bg-secondary);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .refresh-btn {
+            background: var(--accent-color);
+            color: var(--bg-primary);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .refresh-btn:hover {
+            opacity: 0.8;
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .summary-section {
+            background: var(--bg-secondary);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .summary-percentage {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-left: 8px;
+        }
+
+        .summary-card.success .summary-value {
+            color: var(--success-color);
+        }
+
+        .summary-card.failure .summary-value {
+            color: var(--danger-color);
+        }
+
+        .summary-card.running .summary-value {
+            color: var(--info-color);
+        }
+
+        .jobs-section {
+            background: var(--bg-secondary);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background: var(--bg-card);
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        th.job-name-col {
+            width: 40%;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-card);
+        }
+
+        td {
+            padding: 12px 16px;
+        }
+
+        .loading-row {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 40px !important;
+        }
+
+        .job-name {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+        }
+
+        .success-rate {
+            font-weight: 600;
+        }
+
+        .rate-high {
+            color: var(--success-color);
+        }
+
+        .rate-medium {
+            color: var(--warning-color);
+        }
+
+        .rate-low {
+            color: var(--danger-color);
+        }
+
+        .row-high {
+            border-left: 3px solid var(--success-color);
+        }
+
+        .row-medium {
+            border-left: 3px solid var(--warning-color);
+        }
+
+        .row-low {
+            border-left: 3px solid var(--danger-color);
+        }
+
+        .alert {
+            background: var(--bg-card);
+            border: 1px solid var(--warning-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            color: var(--warning-color);
+        }
+
+        .alert.error {
+            border-color: var(--danger-color);
+            color: var(--danger-color);
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+            padding: 20px;
+        }
+
+        footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px 12px;
+            }
+
+            .summary-value {
+                font-size: 24px;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        tbody tr {
+            animation: fadeIn 0.3s ease-in;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 OpenStack Horizon Test Job Monitor</h1>
+            <div class="header-info">
+                <span id="last-update">Loading...</span>
+                <button id="refresh-btn" class="refresh-btn">↻ Refresh Now</button>
+            </div>
+        </header>
+
+        <div id="alert-container"></div>
+
+        <div class="summary-section">
+            <h2>Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">Total Jobs</div>
+                    <div class="summary-value" id="total-jobs">-</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Total Runs</div>
+                    <div class="summary-value" id="total-runs">-</div>
+                </div>
+                <div class="summary-card success">
+                    <div class="summary-label">Success</div>
+                    <div class="summary-value">
+                        <span id="total-success">-</span>
+                        <span class="summary-percentage" id="success-percentage">(-.-%)</span>
+                    </div>
+                </div>
+                <div class="summary-card failure">
+                    <div class="summary-label">Failure</div>
+                    <div class="summary-value" id="total-failure">-</div>
+                </div>
+                <div class="summary-card running">
+                    <div class="summary-label">Running</div>
+                    <div class="summary-value" id="total-running">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="jobs-section">
+            <h2>Job Details</h2>
+            <div class="table-container">
+                <table id="jobs-table">
+                    <thead>
+                        <tr>
+                            <th class="job-name-col">Job Name</th>
+                            <th>Total</th>
+                            <th>✓</th>
+                            <th>✗</th>
+                            <th>▶</th>
+                            <th>Success %</th>
+                            <th>Avg Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobs-tbody">
+                        <tr>
+                            <td colspan="7" class="loading-row">Loading data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            <p>Auto-refreshing every 30 seconds | Data from <a href="https://zuul.opendev.org" target="_blank">Zuul CI</a></p>
+            <p style="margin-top: 8px; font-size: 12px;">
+                <a href="https://github.com/tovchinn/openstack-horizon-test-job-monitor" target="_blank">CLI Version</a> |
+                <a href="https://github.com/tovchinn/openstack-horizon-test-job-monitor-web" target="_blank">Source Code</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        const ZUUL_API = 'https://zuul.opendev.org/api';
+        const PROJECT = 'openstack/horizon';
+        const REFRESH_INTERVAL = 30000; // 30 seconds
+        let refreshTimer = null;
+        let lastUpdate = null;
+
+        // Format duration from seconds to readable format
+        function formatDuration(seconds) {
+            if (!seconds || seconds === 0) return 'N/A';
+
+            const minutes = seconds / 60;
+            if (minutes < 60) {
+                return `${minutes.toFixed(1)}m`;
+            }
+
+            const hours = minutes / 60;
+            return `${hours.toFixed(1)}h`;
+        }
+
+        // Get color class based on success rate
+        function getSuccessRateClass(rate) {
+            if (rate >= 90) return 'rate-high';
+            if (rate >= 70) return 'rate-medium';
+            return 'rate-low';
+        }
+
+        // Get row class based on success rate
+        function getRowClass(rate) {
+            if (rate >= 90) return 'row-high';
+            if (rate >= 70) return 'row-medium';
+            return 'row-low';
+        }
+
+        // Show alert message
+        function showAlert(message, isError = false) {
+            const container = document.getElementById('alert-container');
+            const alertClass = isError ? 'alert error' : 'alert';
+            container.innerHTML = `<div class="${alertClass}">${message}</div>`;
+        }
+
+        // Clear alert message
+        function clearAlert() {
+            document.getElementById('alert-container').innerHTML = '';
+        }
+
+        // Fetch builds from Zuul API
+        async function fetchBuilds(limit = 200) {
+            const url = `${ZUUL_API}/tenant/openstack/builds`;
+            const params = new URLSearchParams({
+                project: PROJECT,
+                limit: limit.toString()
+            });
+
+            const response = await fetch(`${url}?${params}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            return await response.json();
+        }
+
+        // Process builds into job statistics
+        function processBuilds(builds) {
+            const jobData = {};
+
+            builds.forEach(build => {
+                const jobName = build.job_name || 'unknown';
+
+                if (!jobData[jobName]) {
+                    jobData[jobName] = {
+                        total: 0,
+                        success: 0,
+                        failure: 0,
+                        running: 0,
+                        durations: [],
+                        lastRun: null
+                    };
+                }
+
+                const job = jobData[jobName];
+                job.total++;
+
+                const result = build.result;
+                if (result === 'SUCCESS') {
+                    job.success++;
+                } else if (result === 'FAILURE') {
+                    job.failure++;
+                } else if (result === null) {
+                    job.running++;
+                }
+
+                if (build.duration) {
+                    job.durations.push(build.duration);
+                }
+
+                if (build.end_time && (!job.lastRun || build.end_time > job.lastRun)) {
+                    job.lastRun = build.end_time;
+                }
+            });
+
+            // Convert to array with statistics
+            const jobs = Object.entries(jobData).map(([name, data]) => {
+                const avgDuration = data.durations.length > 0
+                    ? data.durations.reduce((a, b) => a + b, 0) / data.durations.length
+                    : 0;
+                const successRate = data.total > 0
+                    ? (data.success / data.total) * 100
+                    : 0;
+
+                return {
+                    name,
+                    total_runs: data.total,
+                    success: data.success,
+                    failure: data.failure,
+                    running: data.running,
+                    avg_duration: avgDuration,
+                    last_run: data.lastRun,
+                    success_rate: successRate
+                };
+            });
+
+            // Sort by success rate (ascending) to highlight problem jobs
+            jobs.sort((a, b) => {
+                if (a.success_rate !== b.success_rate) {
+                    return a.success_rate - b.success_rate;
+                }
+                return b.total_runs - a.total_runs;
+            });
+
+            return jobs;
+        }
+
+        // Calculate summary statistics
+        function calculateSummary(jobs) {
+            const totalJobs = jobs.length;
+            const totalRuns = jobs.reduce((sum, job) => sum + job.total_runs, 0);
+            const totalSuccess = jobs.reduce((sum, job) => sum + job.success, 0);
+            const totalFailure = jobs.reduce((sum, job) => sum + job.failure, 0);
+            const totalRunning = jobs.reduce((sum, job) => sum + job.running, 0);
+            const overallSuccessRate = totalRuns > 0 ? (totalSuccess / totalRuns) * 100 : 0;
+
+            return {
+                total_jobs: totalJobs,
+                total_runs: totalRuns,
+                total_success: totalSuccess,
+                total_failure: totalFailure,
+                total_running: totalRunning,
+                overall_success_rate: overallSuccessRate
+            };
+        }
+
+        // Update the summary section
+        function updateSummary(summary) {
+            document.getElementById('total-jobs').textContent = summary.total_jobs;
+            document.getElementById('total-runs').textContent = summary.total_runs;
+            document.getElementById('total-success').textContent = summary.total_success;
+            document.getElementById('success-percentage').textContent =
+                `(${summary.overall_success_rate.toFixed(1)}%)`;
+            document.getElementById('total-failure').textContent = summary.total_failure;
+            document.getElementById('total-running').textContent = summary.total_running;
+        }
+
+        // Update the jobs table
+        function updateJobsTable(jobs) {
+            const tbody = document.getElementById('jobs-tbody');
+
+            if (!jobs || jobs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No data available</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = jobs.map(job => {
+                const rateClass = getSuccessRateClass(job.success_rate);
+                const rowClass = getRowClass(job.success_rate);
+
+                return `
+                    <tr class="${rowClass}">
+                        <td class="job-name">${escapeHtml(job.name)}</td>
+                        <td>${job.total_runs}</td>
+                        <td>${job.success}</td>
+                        <td>${job.failure}</td>
+                        <td>${job.running}</td>
+                        <td class="success-rate ${rateClass}">${job.success_rate.toFixed(1)}%</td>
+                        <td>${formatDuration(job.avg_duration)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update last update timestamp
+        function updateLastUpdateTime() {
+            if (!lastUpdate) {
+                document.getElementById('last-update').textContent = 'Never updated';
+                return;
+            }
+
+            const now = new Date();
+            const diffSeconds = Math.floor((now - lastUpdate) / 1000);
+
+            let timeAgo;
+            if (diffSeconds < 60) {
+                timeAgo = `${diffSeconds}s ago`;
+            } else if (diffSeconds < 3600) {
+                timeAgo = `${Math.floor(diffSeconds / 60)}m ago`;
+            } else {
+                timeAgo = lastUpdate.toLocaleTimeString();
+            }
+
+            document.getElementById('last-update').textContent =
+                `Last update: ${lastUpdate.toLocaleString()} (${timeAgo})`;
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Fetch and display stats
+        async function fetchStats() {
+            try {
+                clearAlert();
+                const builds = await fetchBuilds(200);
+                const jobs = processBuilds(builds);
+                const summary = calculateSummary(jobs);
+
+                updateSummary(summary);
+                updateJobsTable(jobs);
+                lastUpdate = new Date();
+                updateLastUpdateTime();
+
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+                showAlert(`Error loading data: ${error.message}. Retrying...`, true);
+                document.getElementById('jobs-tbody').innerHTML =
+                    '<tr><td colspan="7" class="loading-row">Error loading data. Retrying...</td></tr>';
+            }
+        }
+
+        // Force refresh
+        async function forceRefresh() {
+            const btn = document.getElementById('refresh-btn');
+            btn.disabled = true;
+            btn.textContent = '↻ Refreshing...';
+
+            try {
+                await fetchStats();
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '↻ Refresh Now';
+                resetRefreshTimer();
+            }
+        }
+
+        // Reset the auto-refresh timer
+        function resetRefreshTimer() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+            }
+            refreshTimer = setInterval(fetchStats, REFRESH_INTERVAL);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set up refresh button
+            document.getElementById('refresh-btn').addEventListener('click', forceRefresh);
+
+            // Initial fetch
+            fetchStats();
+
+            // Set up auto-refresh
+            resetRefreshTimer();
+
+            // Update "time ago" every 10 seconds
+            setInterval(updateLastUpdateTime, 10000);
+        });
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+            }
+        });
+    </script>
+</body>
+</html>
