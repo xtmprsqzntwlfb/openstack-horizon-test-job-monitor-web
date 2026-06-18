@@ -1,11 +1,11 @@
 # OpenStack Horizon Test Job Monitor - Web Dashboard
 
-[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://tovchinn.github.io/openstack-horizon-test-job-monitor-web/)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://xtmprsqzntwlfb.github.io/openstack-horizon-test-job-monitor-web/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Browser-based real-time monitoring dashboard for OpenStack Horizon test jobs running on Zuul CI.
 
-🔗 **Live Demo**: https://tovchinn.github.io/openstack-horizon-test-job-monitor-web/
+🔗 **Live Demo**: https://xtmprsqzntwlfb.github.io/openstack-horizon-test-job-monitor-web/
 
 ## Features
 
@@ -20,7 +20,7 @@ Browser-based real-time monitoring dashboard for OpenStack Horizon test jobs run
 
 ### Option 1: Use the Live Version
 
-Simply visit: **https://tovchinn.github.io/openstack-horizon-test-job-monitor-web/**
+Simply visit: **https://xtmprsqzntwlfb.github.io/openstack-horizon-test-job-monitor-web/**
 
 No installation needed!
 
@@ -28,7 +28,7 @@ No installation needed!
 
 ```bash
 # Clone the repository
-git clone https://github.com/tovchinn/openstack-horizon-test-job-monitor-web.git
+git clone https://github.com/xtmprsqzntwlfb/openstack-horizon-test-job-monitor-web.git
 cd openstack-horizon-test-job-monitor-web
 
 # Open in browser
@@ -120,7 +120,7 @@ Works on all modern browsers:
 
 ## Related Projects
 
-- [CLI Monitor](https://github.com/tovchinn/openstack-horizon-test-job-monitor) - Terminal-based Python version with demo mode
+- [CLI Monitor](https://github.com/xtmprsqzntwlfb/openstack-horizon-test-job-monitor) - Terminal-based Python version with demo mode
 
 ## Tech Stack
 
