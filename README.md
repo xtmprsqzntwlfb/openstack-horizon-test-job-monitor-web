@@ -5,8 +5,6 @@
 
 Browser-based real-time monitoring dashboard for OpenStack Horizon test jobs running on Zuul CI.
 
-🔗 **Live Demo**: https://xtmprsqzntwlfb.github.io/openstack-horizon-test-job-monitor-web/
-
 
 ## Quick Start
 
@@ -32,24 +30,16 @@ python3 -m http.server 8000
 
 ## How It Works
 
-1. Fetches data directly from [Zuul CI API](https://zuul.opendev.org/api)
+1. Fetches data directly from [Zuul CI API](https://zuul.opendev.org/openapi)
 2. Processes build statistics in the browser
 3. Displays real-time metrics with color-coded indicators
-4. Auto-refreshes at configurable intervals (default: 5 minutes)
+4. Auto-refreshes at configurable intervals
 5. Saves all preferences to browser localStorage
 
 All processing happens client-side - no backend server required!
 
 
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## Author
-
-Tatiana Ovchinnikova
-
-## Acknowledgments
+## Links
 
 - [OpenStack Horizon](https://docs.openstack.org/horizon/) - Dashboard project
 - [Zuul CI](https://zuul-ci.org/) - CI/CD system
