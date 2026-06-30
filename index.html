@@ -24,6 +24,17 @@
             --danger-color: #f85149;
             --info-color: #58a6ff;
             --accent-color: #58a6ff;
+            --shadow: rgba(0, 0, 0, 0.2);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-card: #ffffff;
+            --text-primary: #24292f;
+            --text-secondary: #57606a;
+            --border-color: #d0d7de;
+            --shadow: rgba(0, 0, 0, 0.1);
         }
 
         body {
@@ -32,6 +43,7 @@
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .container {
@@ -46,6 +58,7 @@
             border-radius: 12px;
             margin-bottom: 24px;
             border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px var(--shadow);
         }
 
         h1 {
@@ -64,25 +77,89 @@
             gap: 12px;
         }
 
-        .refresh-btn {
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
             background: var(--accent-color);
-            color: var(--bg-primary);
+            color: #ffffff;
             border: none;
             padding: 8px 16px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, transform 0.1s;
         }
 
-        .refresh-btn:hover {
+        .btn:hover {
             opacity: 0.8;
         }
 
-        .refresh-btn:disabled {
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-icon {
+            padding: 8px 12px;
+        }
+
+        .controls-section {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            align-items: end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .input, select {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+
+        .input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
         }
 
         .summary-section {
@@ -91,18 +168,23 @@
             border-radius: 12px;
             margin-bottom: 24px;
             border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px var(--shadow);
         }
 
         h2 {
             font-size: 20px;
             font-weight: 600;
             margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 16px;
+            margin-bottom: 20px;
         }
 
         .summary-card {
@@ -110,6 +192,12 @@
             padding: 20px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
         }
 
         .summary-label {
@@ -143,12 +231,111 @@
             color: var(--info-color);
         }
 
+        .chart-container {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-top: 16px;
+        }
+
+        .chart-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        .chart-bar-wrapper {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 12px;
+        }
+
+        .chart-label {
+            min-width: 120px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .chart-bar-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-bar {
+            flex: 1;
+            height: 28px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+
+        .chart-bar-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 0;
+        }
+
+        .chart-bar-fill.success {
+            background: var(--success-color);
+        }
+
+        .chart-bar-fill.warning {
+            background: var(--warning-color);
+        }
+
+        .chart-bar-fill.danger {
+            background: var(--danger-color);
+        }
+
+        .chart-count {
+            min-width: 100px;
+            text-align: right;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        .chart-count .percentage {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-left: 4px;
+        }
+
         .jobs-section {
             background: var(--bg-secondary);
             padding: 24px;
             border-radius: 12px;
             border: 1px solid var(--border-color);
             margin-bottom: 24px;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .job-count {
+            font-size: 14px;
+            color: var(--text-secondary);
         }
 
         .table-container {
@@ -163,6 +350,9 @@
 
         thead {
             background: var(--bg-card);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         th {
@@ -171,10 +361,33 @@
             font-weight: 600;
             border-bottom: 2px solid var(--border-color);
             white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        th:hover {
+            background: var(--bg-secondary);
+        }
+
+        th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.3;
+            font-size: 12px;
+        }
+
+        th.sorted-asc::after {
+            content: ' ▲';
+            opacity: 1;
+        }
+
+        th.sorted-desc::after {
+            content: ' ▼';
+            opacity: 1;
         }
 
         th.job-name-col {
-            width: 40%;
+            width: 35%;
         }
 
         tbody tr {
@@ -199,10 +412,25 @@
         .job-name {
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .health-icon {
+            font-size: 16px;
         }
 
         .success-rate {
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .trend-icon {
+            font-size: 12px;
+            opacity: 0.7;
         }
 
         .rate-high {
@@ -236,11 +464,141 @@
             padding: 16px;
             margin-bottom: 24px;
             color: var(--warning-color);
+            box-shadow: 0 2px 8px var(--shadow);
         }
 
         .alert.error {
             border-color: var(--danger-color);
             color: var(--danger-color);
+        }
+
+        .alert.success {
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            box-shadow: -2px 0 8px var(--shadow);
+            padding: 24px;
+            overflow-y: auto;
+            transition: right 0.3s ease;
+            z-index: 1000;
+        }
+
+        .settings-panel.open {
+            right: 0;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .settings-header h3 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .settings-group {
+            margin-bottom: 24px;
+        }
+
+        .settings-group h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-size: 14px;
+        }
+
+        .apply-changes-btn {
+            width: 100%;
+            margin-top: 16px;
+            background: var(--success-color);
+            color: white;
+            padding: 12px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .apply-changes-btn.visible {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent-color);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            left: 26px;
         }
 
         footer {
@@ -272,6 +630,10 @@
                 grid-template-columns: 1fr;
             }
 
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+
             table {
                 font-size: 12px;
             }
@@ -282,6 +644,15 @@
 
             .summary-value {
                 font-size: 24px;
+            }
+
+            .settings-panel {
+                width: 100%;
+                right: -100%;
+            }
+
+            .job-name {
+                font-size: 11px;
             }
         }
 
@@ -297,22 +668,71 @@
         tbody tr {
             animation: fadeIn 0.3s ease-in;
         }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
-<body>
+<body data-theme="dark">
     <div class="container">
         <header>
             <h1>📊 OpenStack Horizon Test Job Monitor</h1>
             <div class="header-info">
                 <span id="last-update">Loading...</span>
-                <button id="refresh-btn" class="refresh-btn">↻ Refresh Now</button>
+                <div class="header-actions">
+                    <button id="theme-toggle" class="btn btn-secondary btn-icon" title="Toggle theme">🌓</button>
+                    <button id="settings-btn" class="btn btn-secondary btn-icon" title="Settings">⚙️</button>
+                    <button id="export-btn" class="btn btn-secondary" title="Export to CSV">📥 Export</button>
+                    <button id="refresh-btn" class="btn">↻ Refresh</button>
+                </div>
             </div>
         </header>
 
         <div id="alert-container"></div>
 
+        <div class="controls-section">
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label class="control-label" for="search-input">🔍 Search Jobs</label>
+                    <input type="text" id="search-input" class="input" placeholder="Filter by job name...">
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="status-filter">📊 Status Filter</label>
+                    <select id="status-filter" class="input">
+                        <option value="all">All Jobs</option>
+                        <option value="healthy">Healthy (≥90%)</option>
+                        <option value="warning">Warning (70-89%)</option>
+                        <option value="failing">Failing (<70%)</option>
+                        <option value="has-running">Has Running</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="sort-by">🔃 Sort By</label>
+                    <select id="sort-by" class="input">
+                        <option value="success-asc">Success Rate (Low to High)</option>
+                        <option value="success-desc">Success Rate (High to Low)</option>
+                        <option value="name-asc">Job Name (A-Z)</option>
+                        <option value="name-desc">Job Name (Z-A)</option>
+                        <option value="total-desc">Total Runs (High to Low)</option>
+                        <option value="duration-desc">Avg Duration (High to Low)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
         <div class="summary-section">
-            <h2>Summary</h2>
+            <h2>📈 Summary</h2>
             <div class="summary-grid">
                 <div class="summary-card">
                     <div class="summary-label">Total Jobs</div>
@@ -338,21 +758,29 @@
                     <div class="summary-value" id="total-running">-</div>
                 </div>
             </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Success Rate Distribution</div>
+                <div id="chart-bars"></div>
+            </div>
         </div>
 
         <div class="jobs-section">
-            <h2>Job Details</h2>
+            <div class="section-header">
+                <h2>📋 Job Details</h2>
+                <span class="job-count" id="job-count">Showing 0 jobs</span>
+            </div>
             <div class="table-container">
                 <table id="jobs-table">
                     <thead>
                         <tr>
-                            <th class="job-name-col">Job Name</th>
-                            <th>Total</th>
-                            <th>✓</th>
-                            <th>✗</th>
-                            <th>▶</th>
-                            <th>Success %</th>
-                            <th>Avg Time</th>
+                            <th class="job-name-col sortable" data-sort="name">Job Name</th>
+                            <th class="sortable" data-sort="total">Total</th>
+                            <th class="sortable" data-sort="success">✓</th>
+                            <th class="sortable" data-sort="failure">✗</th>
+                            <th class="sortable" data-sort="running">▶</th>
+                            <th class="sortable" data-sort="rate">Success %</th>
+                            <th class="sortable" data-sort="duration">Avg Time</th>
                         </tr>
                     </thead>
                     <tbody id="jobs-tbody">
@@ -365,20 +793,128 @@
         </div>
 
         <footer>
-            <p>Auto-refreshing every 30 seconds | Data from <a href="https://zuul.opendev.org" target="_blank">Zuul CI</a></p>
+            <p>Auto-refreshing every 5 minutes | Data from <a href="https://zuul.opendev.org" target="_blank">Zuul CI</a></p>
             <p style="margin-top: 8px; font-size: 12px;">
-                <a href="https://github.com/xtmprsqzntwlfb/openstack-horizon-test-job-monitor" target="_blank">CLI Version</a> |
                 <a href="https://github.com/xtmprsqzntwlfb/openstack-horizon-test-job-monitor-web" target="_blank">Source Code</a>
             </p>
         </footer>
     </div>
 
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">
+            <h3>⚙️ Settings</h3>
+            <button class="close-btn" id="close-settings">×</button>
+        </div>
+
+        <div class="settings-group">
+            <h4>Display</h4>
+            <div class="setting-item">
+                <span class="setting-label">Dark Theme</span>
+                <div class="toggle-switch active" id="theme-toggle-switch"></div>
+            </div>
+            <div class="setting-item">
+                <span class="setting-label">Show Health Icons</span>
+                <div class="toggle-switch active" id="health-icons-toggle"></div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <h4>Notifications</h4>
+            <div class="setting-item">
+                <span class="setting-label">Desktop Notifications</span>
+                <div class="toggle-switch" id="notifications-toggle"></div>
+            </div>
+            <div class="setting-item">
+                <span class="setting-label">Notify on Failures</span>
+                <div class="toggle-switch active" id="notify-failures-toggle"></div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <h4>Data</h4>
+            <div class="control-group">
+                <label class="control-label">Refresh Interval</label>
+                <select id="refresh-interval-select" class="input">
+                    <option value="300" selected>5 minutes</option>
+                    <option value="600">10 minutes</option>
+                    <option value="900">15 minutes</option>
+                    <option value="1800">30 minutes</option>
+                    <option value="3600">1 hour</option>
+                    <option value="7200">2 hours</option>
+                    <option value="14400">4 hours</option>
+                    <option value="28800">8 hours</option>
+                    <option value="43200">12 hours</option>
+                    <option value="86400">24 hours</option>
+                </select>
+            </div>
+            <div class="control-group" style="margin-top: 12px;">
+                <label class="control-label">Fetch Limit (builds)</label>
+                <select id="fetch-limit-select" class="input">
+                    <option value="100">100 builds</option>
+                    <option value="200" selected>200 builds</option>
+                    <option value="500">500 builds</option>
+                    <option value="1000">1000 builds</option>
+                </select>
+            </div>
+            <button id="apply-changes-btn" class="btn apply-changes-btn">
+                ↻ Refresh to Apply Changes
+            </button>
+        </div>
+    </div>
+
     <script>
         const ZUUL_API = 'https://zuul.opendev.org/api';
         const PROJECT = 'openstack/horizon';
-        const REFRESH_INTERVAL = 30000; // 30 seconds
+
+        // Settings with defaults
+        let settings = {
+            refreshInterval: 300000, // 5 minutes
+            fetchLimit: 200,
+            theme: 'dark',
+            showHealthIcons: true,
+            desktopNotifications: false,
+            notifyOnFailures: true
+        };
+
         let refreshTimer = null;
         let lastUpdate = null;
+        let allJobs = [];
+        let filteredJobs = [];
+        let previousFailures = new Set();
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('dashboard-settings');
+            if (saved) {
+                settings = { ...settings, ...JSON.parse(saved) };
+            }
+            applySettings();
+        }
+
+        // Save settings to localStorage
+        function saveSettings() {
+            localStorage.setItem('dashboard-settings', JSON.stringify(settings));
+        }
+
+        // Apply settings to UI
+        function applySettings() {
+            document.body.setAttribute('data-theme', settings.theme);
+            document.getElementById('theme-toggle-switch').classList.toggle('active', settings.theme === 'dark');
+            document.getElementById('health-icons-toggle').classList.toggle('active', settings.showHealthIcons);
+            document.getElementById('notifications-toggle').classList.toggle('active', settings.desktopNotifications);
+            document.getElementById('notify-failures-toggle').classList.toggle('active', settings.notifyOnFailures);
+            document.getElementById('refresh-interval-select').value = settings.refreshInterval / 1000;
+            document.getElementById('fetch-limit-select').value = settings.fetchLimit;
+        }
+
+        // Get health icon based on success rate
+        function getHealthIcon(rate) {
+            if (!settings.showHealthIcons) return '';
+            if (rate >= 90) return '✅';
+            if (rate >= 70) return '⚠️';
+            return '❌';
+        }
 
         // Format duration from seconds to readable format
         function formatDuration(seconds) {
@@ -408,15 +944,33 @@
         }
 
         // Show alert message
-        function showAlert(message, isError = false) {
+        function showAlert(message, type = 'warning') {
             const container = document.getElementById('alert-container');
-            const alertClass = isError ? 'alert error' : 'alert';
-            container.innerHTML = `<div class="${alertClass}">${message}</div>`;
+            container.innerHTML = `<div class="alert ${type}">${message}</div>`;
+            setTimeout(clearAlert, 5000);
         }
 
         // Clear alert message
         function clearAlert() {
             document.getElementById('alert-container').innerHTML = '';
+        }
+
+        // Request notification permission
+        async function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                await Notification.requestPermission();
+            }
+        }
+
+        // Show desktop notification
+        function showNotification(title, body) {
+            if (settings.desktopNotifications && 'Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, {
+                    body,
+                    icon: '📊',
+                    tag: 'job-monitor'
+                });
+            }
         }
 
         // Fetch builds from Zuul API
@@ -501,14 +1055,6 @@
                 };
             });
 
-            // Sort by success rate (ascending) to highlight problem jobs
-            jobs.sort((a, b) => {
-                if (a.success_rate !== b.success_rate) {
-                    return a.success_rate - b.success_rate;
-                }
-                return b.total_runs - a.total_runs;
-            });
-
             return jobs;
         }
 
@@ -542,22 +1088,134 @@
             document.getElementById('total-running').textContent = summary.total_running;
         }
 
+        // Update success rate chart
+        function updateChart(jobs) {
+            const chartBars = document.getElementById('chart-bars');
+
+            // Calculate distribution
+            const healthy = jobs.filter(j => j.success_rate >= 90).length;
+            const warning = jobs.filter(j => j.success_rate >= 70 && j.success_rate < 90).length;
+            const failing = jobs.filter(j => j.success_rate < 70).length;
+            const total = jobs.length || 1;
+
+            const healthyPct = (healthy / total) * 100;
+            const warningPct = (warning / total) * 100;
+            const failingPct = (failing / total) * 100;
+
+            chartBars.innerHTML = `
+                <div class="chart-bar-wrapper">
+                    <div class="chart-label">Healthy (≥90%)</div>
+                    <div class="chart-bar-container">
+                        <div class="chart-bar">
+                            <div class="chart-bar-fill success" style="width: ${healthyPct}%"></div>
+                        </div>
+                        <div class="chart-count">${healthy} jobs <span class="percentage">(${healthyPct.toFixed(1)}%)</span></div>
+                    </div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-label">Warning (70-89%)</div>
+                    <div class="chart-bar-container">
+                        <div class="chart-bar">
+                            <div class="chart-bar-fill warning" style="width: ${warningPct}%"></div>
+                        </div>
+                        <div class="chart-count">${warning} jobs <span class="percentage">(${warningPct.toFixed(1)}%)</span></div>
+                    </div>
+                </div>
+                <div class="chart-bar-wrapper">
+                    <div class="chart-label">Failing (<70%)</div>
+                    <div class="chart-bar-container">
+                        <div class="chart-bar">
+                            <div class="chart-bar-fill danger" style="width: ${failingPct}%"></div>
+                        </div>
+                        <div class="chart-count">${failing} jobs <span class="percentage">(${failingPct.toFixed(1)}%)</span></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Filter and sort jobs
+        function filterAndSortJobs() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const statusFilter = document.getElementById('status-filter').value;
+            const sortBy = document.getElementById('sort-by').value;
+
+            // Filter
+            filteredJobs = allJobs.filter(job => {
+                // Search filter
+                if (searchTerm && !job.name.toLowerCase().includes(searchTerm)) {
+                    return false;
+                }
+
+                // Status filter
+                if (statusFilter === 'healthy' && job.success_rate < 90) return false;
+                if (statusFilter === 'warning' && (job.success_rate < 70 || job.success_rate >= 90)) return false;
+                if (statusFilter === 'failing' && job.success_rate >= 70) return false;
+                if (statusFilter === 'has-running' && job.running === 0) return false;
+
+                return true;
+            });
+
+            // Sort
+            const [field, direction] = sortBy.split('-');
+            filteredJobs.sort((a, b) => {
+                let aVal, bVal;
+
+                switch (field) {
+                    case 'name':
+                        aVal = a.name;
+                        bVal = b.name;
+                        break;
+                    case 'success':
+                        aVal = a.success_rate;
+                        bVal = b.success_rate;
+                        break;
+                    case 'total':
+                        aVal = a.total_runs;
+                        bVal = b.total_runs;
+                        break;
+                    case 'duration':
+                        aVal = a.avg_duration;
+                        bVal = b.avg_duration;
+                        break;
+                    default:
+                        return 0;
+                }
+
+                if (typeof aVal === 'string') {
+                    return direction === 'asc'
+                        ? aVal.localeCompare(bVal)
+                        : bVal.localeCompare(aVal);
+                }
+
+                return direction === 'asc' ? aVal - bVal : bVal - aVal;
+            });
+
+            updateJobsTable(filteredJobs);
+        }
+
         // Update the jobs table
         function updateJobsTable(jobs) {
             const tbody = document.getElementById('jobs-tbody');
+            const jobCount = document.getElementById('job-count');
+
+            jobCount.textContent = `Showing ${jobs.length} of ${allJobs.length} jobs`;
 
             if (!jobs || jobs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No data available</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No jobs match your filters</td></tr>';
                 return;
             }
 
             tbody.innerHTML = jobs.map(job => {
                 const rateClass = getSuccessRateClass(job.success_rate);
                 const rowClass = getRowClass(job.success_rate);
+                const healthIcon = getHealthIcon(job.success_rate);
 
                 return `
                     <tr class="${rowClass}">
-                        <td class="job-name">${escapeHtml(job.name)}</td>
+                        <td class="job-name">
+                            <span class="health-icon">${healthIcon}</span>
+                            <span>${escapeHtml(job.name)}</span>
+                        </td>
                         <td>${job.total_runs}</td>
                         <td>${job.success}</td>
                         <td>${job.failure}</td>
@@ -599,22 +1257,46 @@
             return div.innerHTML;
         }
 
+        // Check for new failures and notify
+        function checkForNewFailures(jobs) {
+            if (!settings.notifyOnFailures) return;
+
+            const currentFailures = new Set(
+                jobs.filter(j => j.failure > 0 && j.success_rate < 70).map(j => j.name)
+            );
+
+            const newFailures = [...currentFailures].filter(name => !previousFailures.has(name));
+
+            if (newFailures.length > 0 && previousFailures.size > 0) {
+                const message = `${newFailures.length} job(s) now failing: ${newFailures.slice(0, 3).join(', ')}`;
+                showNotification('Jobs Failing', message);
+                showAlert(message, 'error');
+            }
+
+            previousFailures = currentFailures;
+        }
+
         // Fetch and display stats
         async function fetchStats() {
             try {
                 clearAlert();
-                const builds = await fetchBuilds(200);
-                const jobs = processBuilds(builds);
-                const summary = calculateSummary(jobs);
+                const builds = await fetchBuilds(settings.fetchLimit);
+                allJobs = processBuilds(builds);
 
+                const summary = calculateSummary(allJobs);
                 updateSummary(summary);
-                updateJobsTable(jobs);
+                updateChart(allJobs);
+
+                filterAndSortJobs();
+
+                checkForNewFailures(allJobs);
+
                 lastUpdate = new Date();
                 updateLastUpdateTime();
 
             } catch (error) {
                 console.error('Error fetching stats:', error);
-                showAlert(`Error loading data: ${error.message}. Retrying...`, true);
+                showAlert(`Error loading data: ${error.message}. Retrying...`, 'error');
                 document.getElementById('jobs-tbody').innerHTML =
                     '<tr><td colspan="7" class="loading-row">Error loading data. Retrying...</td></tr>';
             }
@@ -624,13 +1306,14 @@
         async function forceRefresh() {
             const btn = document.getElementById('refresh-btn');
             btn.disabled = true;
-            btn.textContent = '↻ Refreshing...';
+            btn.innerHTML = '<span class="spinner"></span> Refreshing...';
 
             try {
                 await fetchStats();
+                showAlert('Data refreshed successfully!', 'success');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '↻ Refresh Now';
+                btn.textContent = '↻ Refresh';
                 resetRefreshTimer();
             }
         }
@@ -640,13 +1323,117 @@
             if (refreshTimer) {
                 clearInterval(refreshTimer);
             }
-            refreshTimer = setInterval(fetchStats, REFRESH_INTERVAL);
+            refreshTimer = setInterval(fetchStats, settings.refreshInterval);
+        }
+
+        // Export data to CSV
+        function exportToCSV() {
+            const headers = ['Job Name', 'Total Runs', 'Success', 'Failure', 'Running', 'Success Rate %', 'Avg Duration (s)'];
+            const rows = filteredJobs.map(job => [
+                job.name,
+                job.total_runs,
+                job.success,
+                job.failure,
+                job.running,
+                job.success_rate.toFixed(2),
+                job.avg_duration.toFixed(0)
+            ]);
+
+            const csv = [
+                headers.join(','),
+                ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+            ].join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `horizon-jobs-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showAlert('Data exported to CSV successfully!', 'success');
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
+            saveSettings();
+            applySettings();
+        }
+
+        // Toggle settings panel
+        function toggleSettingsPanel() {
+            document.getElementById('settings-panel').classList.toggle('open');
         }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            // Set up refresh button
+            loadSettings();
+
+            // Event listeners
             document.getElementById('refresh-btn').addEventListener('click', forceRefresh);
+            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+            document.getElementById('settings-btn').addEventListener('click', toggleSettingsPanel);
+            document.getElementById('close-settings').addEventListener('click', toggleSettingsPanel);
+            document.getElementById('export-btn').addEventListener('click', exportToCSV);
+
+            // Search and filter
+            document.getElementById('search-input').addEventListener('input', filterAndSortJobs);
+            document.getElementById('status-filter').addEventListener('change', filterAndSortJobs);
+            document.getElementById('sort-by').addEventListener('change', filterAndSortJobs);
+
+            // Settings toggles
+            document.getElementById('theme-toggle-switch').addEventListener('click', function() {
+                settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
+                saveSettings();
+                applySettings();
+            });
+
+            document.getElementById('health-icons-toggle').addEventListener('click', function() {
+                settings.showHealthIcons = !settings.showHealthIcons;
+                saveSettings();
+                applySettings();
+                filterAndSortJobs();
+            });
+
+            document.getElementById('notifications-toggle').addEventListener('click', async function() {
+                if (!settings.desktopNotifications) {
+                    await requestNotificationPermission();
+                    if (Notification.permission === 'granted') {
+                        settings.desktopNotifications = true;
+                    }
+                } else {
+                    settings.desktopNotifications = false;
+                }
+                saveSettings();
+                applySettings();
+            });
+
+            document.getElementById('notify-failures-toggle').addEventListener('click', function() {
+                settings.notifyOnFailures = !settings.notifyOnFailures;
+                saveSettings();
+                applySettings();
+            });
+
+            document.getElementById('refresh-interval-select').addEventListener('change', function() {
+                settings.refreshInterval = parseInt(this.value) * 1000;
+                saveSettings();
+                resetRefreshTimer();
+                document.getElementById('apply-changes-btn').classList.add('visible');
+            });
+
+            document.getElementById('fetch-limit-select').addEventListener('change', function() {
+                settings.fetchLimit = parseInt(this.value);
+                saveSettings();
+                document.getElementById('apply-changes-btn').classList.add('visible');
+            });
+
+            document.getElementById('apply-changes-btn').addEventListener('click', async function() {
+                this.classList.remove('visible');
+                toggleSettingsPanel();
+                await forceRefresh();
+            });
 
             // Initial fetch
             fetchStats();
