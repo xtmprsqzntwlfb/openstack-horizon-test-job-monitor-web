@@ -162,6 +162,127 @@
             border-color: var(--accent-color);
         }
 
+        .job-selector-wrapper {
+            position: relative;
+        }
+
+        .job-selector-button {
+            width: 100%;
+            text-align: left;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.2s;
+        }
+
+        .job-selector-button:hover {
+            border-color: var(--accent-color);
+        }
+
+        .job-selector-button::after {
+            content: '▼';
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .job-selector-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px var(--shadow);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+
+        .job-selector-dropdown.open {
+            display: block;
+        }
+
+        .job-selector-search {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+            sticky: top;
+            background: var(--bg-card);
+        }
+
+        .job-selector-search input {
+            width: 100%;
+            padding: 6px 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+
+        .job-selector-list {
+            padding: 4px;
+        }
+
+        .job-selector-item {
+            padding: 6px 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .job-selector-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .job-selector-item input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        .job-selector-actions {
+            padding: 8px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            background: var(--bg-card);
+            position: sticky;
+            bottom: 0;
+        }
+
+        .job-selector-actions button {
+            flex: 1;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .job-selector-actions button:hover {
+            background: var(--bg-card);
+        }
+
+        .job-selector-count {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
         .summary-section {
             background: var(--bg-secondary);
             padding: 24px;
@@ -457,6 +578,85 @@
             border-left: 3px solid var(--danger-color);
         }
 
+        .expandable-row {
+            cursor: pointer;
+        }
+
+        .expandable-row:hover {
+            background: var(--bg-card);
+        }
+
+        .expand-icon {
+            display: inline-block;
+            margin-right: 6px;
+            transition: transform 0.2s;
+            font-size: 10px;
+        }
+
+        .expanded .expand-icon {
+            transform: rotate(90deg);
+        }
+
+        .failure-details-row {
+            display: none;
+            background: var(--bg-card);
+        }
+
+        .failure-details-row.visible {
+            display: table-row;
+        }
+
+        .failure-details {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .failure-reason {
+            margin-bottom: 12px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border-left: 3px solid var(--danger-color);
+        }
+
+        .failure-reason-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .failure-count {
+            background: var(--danger-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .failure-error {
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            margin-top: 6px;
+        }
+
+        .failure-links {
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .failure-links a {
+            color: var(--accent-color);
+            text-decoration: none;
+            margin-right: 12px;
+        }
+
+        .failure-links a:hover {
+            text-decoration: underline;
+        }
+
         .alert {
             background: var(--bg-card);
             border: 1px solid var(--warning-color);
@@ -703,8 +903,24 @@
         <div class="controls-section">
             <div class="controls-grid">
                 <div class="control-group">
-                    <label class="control-label" for="search-input">🔍 Search Jobs</label>
-                    <input type="text" id="search-input" class="input" placeholder="Filter by job name...">
+                    <label class="control-label">🔍 Select Jobs</label>
+                    <div class="job-selector-wrapper">
+                        <button type="button" class="job-selector-button" id="job-selector-button">
+                            <span id="job-selector-text">All Jobs</span>
+                        </button>
+                        <div class="job-selector-dropdown" id="job-selector-dropdown">
+                            <div class="job-selector-search">
+                                <input type="text" id="job-selector-search-input" placeholder="Search jobs...">
+                            </div>
+                            <div class="job-selector-list" id="job-selector-list">
+                                <!-- Job checkboxes will be populated here -->
+                            </div>
+                            <div class="job-selector-actions">
+                                <button type="button" id="job-select-all">Select All</button>
+                                <button type="button" id="job-clear-all">Clear All</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="control-group">
                     <label class="control-label" for="status-filter">📊 Status Filter</label>
@@ -727,6 +943,15 @@
                         <option value="duration-desc">Avg Duration (High to Low)</option>
                     </select>
                 </div>
+                <div class="control-group">
+                    <label class="control-label" for="time-period-select">📅 Time Period</label>
+                    <select id="time-period-select" class="input">
+                        <option value="1">Last 24 hours</option>
+                        <option value="3">Last 3 days</option>
+                        <option value="7" selected>Last 7 days</option>
+                        <option value="30">Last 30 days</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -736,10 +961,6 @@
                 <div class="summary-card">
                     <div class="summary-label">Total Jobs</div>
                     <div class="summary-value" id="total-jobs">-</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">Total Runs</div>
-                    <div class="summary-value" id="total-runs">-</div>
                 </div>
                 <div class="summary-card success">
                     <div class="summary-label">Success</div>
@@ -851,9 +1072,10 @@
                 <label class="control-label">Fetch Limit (builds)</label>
                 <select id="fetch-limit-select" class="input">
                     <option value="100">100 builds</option>
-                    <option value="200" selected>200 builds</option>
+                    <option value="200">200 builds</option>
                     <option value="500">500 builds</option>
-                    <option value="1000">1000 builds</option>
+                    <option value="1000" selected>1000 builds</option>
+                    <option value="10000">10000 builds</option>
                 </select>
             </div>
             <button id="apply-changes-btn" class="btn apply-changes-btn">
@@ -869,11 +1091,12 @@
         // Settings with defaults
         let settings = {
             refreshInterval: 300000, // 5 minutes
-            fetchLimit: 200,
+            fetchLimit: 1000,
             theme: 'dark',
             showHealthIcons: true,
             desktopNotifications: false,
-            notifyOnFailures: false
+            notifyOnFailures: false,
+            timePeriod: 7 // days
         };
 
         let refreshTimer = null;
@@ -881,6 +1104,8 @@
         let allJobs = [];
         let filteredJobs = [];
         let previousFailures = new Set();
+        let selectedJobs = new Set(); // Track selected jobs for filtering
+        let availableJobs = []; // All available job names
 
         // Load settings from localStorage
         function loadSettings() {
@@ -905,6 +1130,8 @@
             document.getElementById('notify-failures-toggle').classList.toggle('active', settings.notifyOnFailures);
             document.getElementById('refresh-interval-select').value = settings.refreshInterval / 1000;
             document.getElementById('fetch-limit-select').value = settings.fetchLimit;
+            const timePeriodValue = (settings.timePeriod === null || settings.timePeriod === 'all') ? 'all' : settings.timePeriod.toString();
+            document.getElementById('time-period-select').value = timePeriodValue;
         }
 
         // Get health icon based on success rate
@@ -995,10 +1222,20 @@
         }
 
         // Process builds into job statistics
-        function processBuilds(builds) {
+        function processBuilds(builds, timePeriodDays = null) {
             const jobData = {};
+            const now = new Date();
+            const cutoffTime = timePeriodDays ? new Date(now - timePeriodDays * 24 * 60 * 60 * 1000) : null;
 
             builds.forEach(build => {
+                // Filter by time period if specified
+                if (cutoffTime && build.end_time) {
+                    const buildTime = new Date(build.end_time);
+                    if (buildTime < cutoffTime) {
+                        return; // Skip builds outside time period
+                    }
+                }
+
                 const jobName = build.job_name || 'unknown';
 
                 if (!jobData[jobName]) {
@@ -1008,7 +1245,9 @@
                         failure: 0,
                         running: 0,
                         durations: [],
-                        lastRun: null
+                        lastRun: null,
+                        failures: [], // Track failure details
+                        recentBuilds: [] // Track recent builds for trend
                     };
                 }
 
@@ -1020,6 +1259,13 @@
                     job.success++;
                 } else if (result === 'FAILURE') {
                     job.failure++;
+                    // Collect failure information
+                    job.failures.push({
+                        timestamp: build.end_time,
+                        log_url: build.log_url,
+                        ref_url: build.ref_url,
+                        error_detail: build.error_detail || 'Unknown error'
+                    });
                 } else if (result === null) {
                     job.running++;
                 }
@@ -1031,6 +1277,13 @@
                 if (build.end_time && (!job.lastRun || build.end_time > job.lastRun)) {
                     job.lastRun = build.end_time;
                 }
+
+                // Track recent builds for trends
+                job.recentBuilds.push({
+                    result: result,
+                    timestamp: build.end_time,
+                    duration: build.duration
+                });
             });
 
             // Convert to array with statistics
@@ -1042,6 +1295,9 @@
                     ? (data.success / data.total) * 100
                     : 0;
 
+                // Analyze failure patterns
+                const failureReasons = analyzeFailures(data.failures);
+
                 return {
                     name,
                     total_runs: data.total,
@@ -1050,11 +1306,49 @@
                     running: data.running,
                     avg_duration: avgDuration,
                     last_run: data.lastRun,
-                    success_rate: successRate
+                    success_rate: successRate,
+                    failure_reasons: failureReasons,
+                    recent_builds: data.recentBuilds.slice(-10) // Keep last 10
                 };
             });
 
             return jobs;
+        }
+
+        // Analyze failure patterns
+        function analyzeFailures(failures) {
+            if (failures.length === 0) return [];
+
+            // Group failures by error patterns
+            const errorPatterns = {};
+
+            failures.forEach(failure => {
+                const detail = failure.error_detail || 'Unknown error';
+                if (!errorPatterns[detail]) {
+                    errorPatterns[detail] = {
+                        count: 0,
+                        lastOccurrence: null,
+                        log_urls: []
+                    };
+                }
+                errorPatterns[detail].count++;
+                errorPatterns[detail].lastOccurrence = failure.timestamp;
+                if (failure.log_url) {
+                    errorPatterns[detail].log_urls.push(failure.log_url);
+                }
+            });
+
+            // Convert to sorted array
+            return Object.entries(errorPatterns)
+                .map(([error, data]) => ({
+                    error,
+                    count: data.count,
+                    percentage: (data.count / failures.length) * 100,
+                    lastOccurrence: data.lastOccurrence,
+                    log_urls: data.log_urls.slice(0, 3) // Keep first 3 log URLs
+                }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 5); // Top 5 failure reasons
         }
 
         // Calculate summary statistics
@@ -1079,7 +1373,6 @@
         // Update the summary section
         function updateSummary(summary) {
             document.getElementById('total-jobs').textContent = summary.total_jobs;
-            document.getElementById('total-runs').textContent = summary.total_runs;
             document.getElementById('total-success').textContent = summary.total_success;
             document.getElementById('success-percentage').textContent =
                 `(${summary.overall_success_rate.toFixed(1)}%)`;
@@ -1132,16 +1425,71 @@
             `;
         }
 
+        // Populate job selector dropdown
+        function populateJobSelector() {
+            // Get unique job names from allJobs
+            availableJobs = allJobs.map(job => job.name).sort();
+
+            const list = document.getElementById('job-selector-list');
+            list.innerHTML = availableJobs.map(jobName => `
+                <label class="job-selector-item">
+                    <input type="checkbox" value="${escapeHtml(jobName)}" ${selectedJobs.has(jobName) ? 'checked' : ''}>
+                    <span>${escapeHtml(jobName)}</span>
+                </label>
+            `).join('');
+
+            // Add checkbox event listeners
+            list.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedJobs.add(this.value);
+                    } else {
+                        selectedJobs.delete(this.value);
+                    }
+                    updateJobSelectorText();
+                    filterAndSortJobs();
+                });
+            });
+
+            updateJobSelectorText();
+        }
+
+        // Update the button text to show selection count
+        function updateJobSelectorText() {
+            const button = document.getElementById('job-selector-text');
+            if (selectedJobs.size === 0) {
+                button.textContent = 'All Jobs';
+            } else if (selectedJobs.size === 1) {
+                button.textContent = Array.from(selectedJobs)[0];
+            } else {
+                button.textContent = `${selectedJobs.size} jobs selected`;
+            }
+        }
+
+        // Filter jobs in dropdown by search
+        function filterJobSelectorList(searchTerm) {
+            const list = document.getElementById('job-selector-list');
+            const items = list.querySelectorAll('.job-selector-item');
+
+            items.forEach(item => {
+                const jobName = item.textContent.toLowerCase();
+                if (jobName.includes(searchTerm.toLowerCase())) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
         // Filter and sort jobs
         function filterAndSortJobs() {
-            const searchTerm = document.getElementById('search-input').value.toLowerCase();
             const statusFilter = document.getElementById('status-filter').value;
             const sortBy = document.getElementById('sort-by').value;
 
             // Filter
             filteredJobs = allJobs.filter(job => {
-                // Search filter
-                if (searchTerm && !job.name.toLowerCase().includes(searchTerm)) {
+                // Job selection filter
+                if (selectedJobs.size > 0 && !selectedJobs.has(job.name)) {
                     return false;
                 }
 
@@ -1204,14 +1552,17 @@
                 return;
             }
 
-            tbody.innerHTML = jobs.map(job => {
+            tbody.innerHTML = jobs.map((job, index) => {
                 const rateClass = getSuccessRateClass(job.success_rate);
                 const rowClass = getRowClass(job.success_rate);
                 const healthIcon = getHealthIcon(job.success_rate);
+                const hasFailures = job.failure > 0 && job.failure_reasons && job.failure_reasons.length > 0;
+                const expandIcon = hasFailures ? '<span class="expand-icon">▶</span>' : '';
 
-                return `
-                    <tr class="${rowClass}">
+                let mainRow = `
+                    <tr class="${rowClass} ${hasFailures ? 'expandable-row' : ''}" data-job-index="${index}">
                         <td class="job-name">
+                            ${expandIcon}
                             <span class="health-icon">${healthIcon}</span>
                             <span>${escapeHtml(job.name)}</span>
                         </td>
@@ -1223,7 +1574,51 @@
                         <td>${formatDuration(job.avg_duration)}</td>
                     </tr>
                 `;
+
+                // Add failure details row if there are failures
+                if (hasFailures) {
+                    const failureDetailsHtml = job.failure_reasons.map(reason => `
+                        <div class="failure-reason">
+                            <div class="failure-reason-header">
+                                <span>${reason.count} occurrence${reason.count > 1 ? 's' : ''}</span>
+                                <span class="failure-count">${reason.percentage.toFixed(0)}%</span>
+                            </div>
+                            <div class="failure-error">${escapeHtml(reason.error)}</div>
+                            ${reason.log_urls && reason.log_urls.length > 0 ? `
+                                <div class="failure-links">
+                                    ${reason.log_urls.map((url, i) =>
+                                        `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">Log ${i + 1}</a>`
+                                    ).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('');
+
+                    mainRow += `
+                        <tr class="failure-details-row" data-job-index="${index}">
+                            <td colspan="7">
+                                <div class="failure-details">
+                                    <h4 style="margin-bottom: 12px;">Failure Analysis (${job.failure} total failures)</h4>
+                                    ${failureDetailsHtml}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                return mainRow;
             }).join('');
+
+            // Add click handlers for expandable rows
+            document.querySelectorAll('.expandable-row').forEach(row => {
+                row.addEventListener('click', function() {
+                    const index = this.getAttribute('data-job-index');
+                    const detailsRow = document.querySelector(`.failure-details-row[data-job-index="${index}"]`);
+
+                    this.classList.toggle('expanded');
+                    detailsRow.classList.toggle('visible');
+                });
+            });
         }
 
         // Update last update timestamp
@@ -1280,12 +1675,14 @@
             try {
                 clearAlert();
                 const builds = await fetchBuilds(settings.fetchLimit);
-                allJobs = processBuilds(builds);
+                const timePeriod = settings.timePeriod === 'all' ? null : parseInt(settings.timePeriod);
+                allJobs = processBuilds(builds, timePeriod);
 
                 const summary = calculateSummary(allJobs);
                 updateSummary(summary);
                 updateChart(allJobs);
 
+                populateJobSelector();
                 filterAndSortJobs();
 
                 checkForNewFailures(allJobs);
@@ -1369,10 +1766,60 @@
             document.getElementById('close-settings').addEventListener('click', toggleSettingsPanel);
             document.getElementById('export-btn').addEventListener('click', exportToCSV);
 
-            // Search and filter
-            document.getElementById('search-input').addEventListener('input', filterAndSortJobs);
+            // Job selector dropdown
+            const jobSelectorButton = document.getElementById('job-selector-button');
+            const jobSelectorDropdown = document.getElementById('job-selector-dropdown');
+            const jobSelectorSearchInput = document.getElementById('job-selector-search-input');
+
+            jobSelectorButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                jobSelectorDropdown.classList.toggle('open');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!jobSelectorButton.contains(e.target) && !jobSelectorDropdown.contains(e.target)) {
+                    jobSelectorDropdown.classList.remove('open');
+                }
+            });
+
+            // Search within job selector
+            jobSelectorSearchInput.addEventListener('input', function() {
+                filterJobSelectorList(this.value);
+            });
+
+            // Select all / Clear all buttons
+            document.getElementById('job-select-all').addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('#job-selector-list input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    if (checkbox.parentElement.style.display !== 'none') {
+                        checkbox.checked = true;
+                        selectedJobs.add(checkbox.value);
+                    }
+                });
+                updateJobSelectorText();
+                filterAndSortJobs();
+            });
+
+            document.getElementById('job-clear-all').addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('#job-selector-list input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                    selectedJobs.delete(checkbox.value);
+                });
+                updateJobSelectorText();
+                filterAndSortJobs();
+            });
+
+            // Other filters
             document.getElementById('status-filter').addEventListener('change', filterAndSortJobs);
             document.getElementById('sort-by').addEventListener('change', filterAndSortJobs);
+            document.getElementById('time-period-select').addEventListener('change', function() {
+                const value = this.value;
+                settings.timePeriod = value === 'all' ? 'all' : parseInt(value);
+                saveSettings();
+                fetchStats(); // Refetch with new time period
+            });
 
             // Settings toggles
             document.getElementById('theme-toggle-switch').addEventListener('click', function() {
