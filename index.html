@@ -691,7 +691,6 @@
             <div class="header-info">
                 <span id="last-update">Loading...</span>
                 <div class="header-actions">
-                    <button id="theme-toggle" class="btn btn-secondary btn-icon" title="Toggle theme">🌓</button>
                     <button id="settings-btn" class="btn btn-secondary btn-icon" title="Settings">⚙️</button>
                     <button id="export-btn" class="btn btn-secondary" title="Export to CSV">📥 Export</button>
                     <button id="refresh-btn" class="btn">↻ Refresh</button>
@@ -874,7 +873,7 @@
             theme: 'dark',
             showHealthIcons: true,
             desktopNotifications: false,
-            notifyOnFailures: true
+            notifyOnFailures: false
         };
 
         let refreshTimer = null;
@@ -1355,13 +1354,6 @@
             showAlert('Data exported to CSV successfully!', 'success');
         }
 
-        // Toggle theme
-        function toggleTheme() {
-            settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
-            saveSettings();
-            applySettings();
-        }
-
         // Toggle settings panel
         function toggleSettingsPanel() {
             document.getElementById('settings-panel').classList.toggle('open');
@@ -1373,7 +1365,6 @@
 
             // Event listeners
             document.getElementById('refresh-btn').addEventListener('click', forceRefresh);
-            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
             document.getElementById('settings-btn').addEventListener('click', toggleSettingsPanel);
             document.getElementById('close-settings').addEventListener('click', toggleSettingsPanel);
             document.getElementById('export-btn').addEventListener('click', exportToCSV);
