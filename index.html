@@ -283,6 +283,189 @@
             font-size: 12px;
         }
 
+        .sparkline {
+            display: inline-flex;
+            gap: 2px;
+            align-items: center;
+            margin-left: 6px;
+        }
+
+        .sparkline-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .sparkline-dot.success {
+            background: var(--success-color);
+        }
+
+        .sparkline-dot.failure {
+            background: var(--danger-color);
+        }
+
+        .sparkline-dot.running {
+            background: var(--info-color);
+        }
+
+        .sparkline-dot.unknown {
+            background: var(--text-secondary);
+            opacity: 0.3;
+        }
+
+        .trend-indicator {
+            font-size: 16px;
+            margin-left: 6px;
+            display: inline-block;
+        }
+
+        .trend-up {
+            color: var(--success-color);
+        }
+
+        .trend-down {
+            color: var(--danger-color);
+        }
+
+        .trend-stable {
+            color: var(--text-secondary);
+        }
+
+        .job-quick-stats {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .consecutive-failures {
+            color: var(--danger-color);
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
+        .last-n-builds {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .builds-bar {
+            display: inline-block;
+            width: 60px;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .builds-bar-fill {
+            height: 100%;
+            background: var(--success-color);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .time-since-failure {
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-style: italic;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .view-toggle-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .view-toggle-btn:hover {
+            background: var(--bg-secondary);
+        }
+
+        .view-toggle-btn.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .jobs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .job-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .job-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .job-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .job-card-name {
+            font-weight: 600;
+            font-size: 14px;
+            flex: 1;
+        }
+
+        .job-card-rate {
+            font-size: 20px;
+            font-weight: 700;
+            margin-left: 12px;
+        }
+
+        .job-card-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .job-card-stat {
+            text-align: center;
+            padding: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .job-card-stat-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .job-card-stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
         .summary-section {
             background: var(--bg-secondary);
             padding: 24px;
@@ -990,7 +1173,12 @@
                 <h2>📋 Job Details</h2>
                 <span class="job-count" id="job-count">Showing 0 jobs</span>
             </div>
-            <div class="table-container">
+            <div class="view-toggle">
+                <button class="view-toggle-btn active" id="view-list" data-view="list">📋 List View</button>
+                <button class="view-toggle-btn" id="view-cards" data-view="cards">🎴 Card View</button>
+            </div>
+            <div id="jobs-container">
+            <div class="table-container" id="table-view">
                 <table id="jobs-table">
                     <thead>
                         <tr>
@@ -1009,6 +1197,10 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+            <div class="jobs-grid" id="cards-view" style="display: none;">
+                <!-- Cards will be populated here -->
+            </div>
             </div>
         </div>
 
@@ -1351,6 +1543,98 @@
                 .slice(0, 5); // Top 5 failure reasons
         }
 
+        // Calculate trend indicator for a job
+        function calculateTrend(recentBuilds) {
+            if (!recentBuilds || recentBuilds.length < 6) return null;
+
+            // Sort by timestamp (oldest first)
+            const sorted = [...recentBuilds].sort((a, b) =>
+                new Date(a.timestamp) - new Date(b.timestamp)
+            );
+
+            // Split into first half and second half
+            const mid = Math.floor(sorted.length / 2);
+            const firstHalf = sorted.slice(0, mid);
+            const secondHalf = sorted.slice(mid);
+
+            const firstSuccessRate = firstHalf.filter(b => b.result === 'SUCCESS').length / firstHalf.length;
+            const secondSuccessRate = secondHalf.filter(b => b.result === 'SUCCESS').length / secondHalf.length;
+
+            const diff = secondSuccessRate - firstSuccessRate;
+
+            if (diff > 0.2) return 'up'; // Improving
+            if (diff < -0.2) return 'down'; // Degrading
+            return 'stable';
+        }
+
+        // Generate sparkline HTML for recent builds
+        function generateSparkline(recentBuilds) {
+            if (!recentBuilds || recentBuilds.length === 0) return '';
+
+            // Sort by timestamp and take last 10
+            const sorted = [...recentBuilds]
+                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+                .slice(-10);
+
+            const dots = sorted.map(build => {
+                let className = 'sparkline-dot ';
+                if (build.result === 'SUCCESS') className += 'success';
+                else if (build.result === 'FAILURE') className += 'failure';
+                else if (build.result === null) className += 'running';
+                else className += 'unknown';
+
+                return `<span class="${className}" title="${build.result || 'Running'} - ${build.timestamp ? new Date(build.timestamp).toLocaleString() : 'Unknown'}"></span>`;
+            }).join('');
+
+            return `<span class="sparkline">${dots}</span>`;
+        }
+
+        // Calculate quick stats for a job
+        function calculateQuickStats(job) {
+            const lastNBuilds = job.recent_builds.slice(-10);
+            const lastNPassed = lastNBuilds.filter(b => b.result === 'SUCCESS').length;
+            const lastNTotal = lastNBuilds.length;
+
+            // Count consecutive failures
+            let consecutiveFailures = 0;
+            const sorted = [...job.recent_builds].sort((a, b) =>
+                new Date(b.timestamp) - new Date(a.timestamp)
+            );
+            for (const build of sorted) {
+                if (build.result === 'FAILURE') {
+                    consecutiveFailures++;
+                } else {
+                    break;
+                }
+            }
+
+            // Time since last failure
+            const lastFailure = sorted.find(b => b.result === 'FAILURE');
+            let timeSinceFailure = null;
+            if (lastFailure && lastFailure.timestamp) {
+                const now = new Date();
+                const failTime = new Date(lastFailure.timestamp);
+                const diffMs = now - failTime;
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffDays = Math.floor(diffHours / 24);
+
+                if (diffDays > 0) {
+                    timeSinceFailure = `${diffDays}d ago`;
+                } else if (diffHours > 0) {
+                    timeSinceFailure = `${diffHours}h ago`;
+                } else {
+                    timeSinceFailure = 'Recently';
+                }
+            }
+
+            return {
+                lastNPassed,
+                lastNTotal,
+                consecutiveFailures,
+                timeSinceFailure
+            };
+        }
+
         // Calculate summary statistics
         function calculateSummary(jobs) {
             const totalJobs = jobs.length;
@@ -1537,7 +1821,13 @@
                 return direction === 'asc' ? aVal - bVal : bVal - aVal;
             });
 
-            updateJobsTable(filteredJobs);
+            // Render based on current view
+            const currentView = document.querySelector('.view-toggle-btn.active').getAttribute('data-view');
+            if (currentView === 'cards') {
+                renderCards(filteredJobs);
+            } else {
+                updateJobsTable(filteredJobs);
+            }
         }
 
         // Update the jobs table
@@ -1559,12 +1849,28 @@
                 const hasFailures = job.failure > 0 && job.failure_reasons && job.failure_reasons.length > 0;
                 const expandIcon = hasFailures ? '<span class="expand-icon">▶</span>' : '';
 
+                // Calculate trend and quick stats
+                const trend = calculateTrend(job.recent_builds);
+                const trendIcon = trend === 'up' ? '<span class="trend-indicator trend-up" title="Improving">↗</span>' :
+                                  trend === 'down' ? '<span class="trend-indicator trend-down" title="Degrading">↘</span>' :
+                                  trend === 'stable' ? '<span class="trend-indicator trend-stable" title="Stable">→</span>' : '';
+
+                const sparkline = generateSparkline(job.recent_builds);
+                const quickStats = calculateQuickStats(job);
+
                 let mainRow = `
                     <tr class="${rowClass} ${hasFailures ? 'expandable-row' : ''}" data-job-index="${index}">
                         <td class="job-name">
                             ${expandIcon}
                             <span class="health-icon">${healthIcon}</span>
                             <span>${escapeHtml(job.name)}</span>
+                            ${sparkline}
+                            ${trendIcon}
+                            <div class="job-quick-stats">
+                                Last ${quickStats.lastNTotal}: ${quickStats.lastNPassed}/${quickStats.lastNTotal} passed
+                                ${quickStats.consecutiveFailures > 0 ? `<span class="consecutive-failures">${quickStats.consecutiveFailures} consecutive failures!</span>` : ''}
+                                ${quickStats.timeSinceFailure && job.failure > 0 ? `<span class="time-since-failure"> • Last failure: ${quickStats.timeSinceFailure}</span>` : ''}
+                            </div>
                         </td>
                         <td>${job.total_runs}</td>
                         <td>${job.success}</td>
@@ -1619,6 +1925,65 @@
                     detailsRow.classList.toggle('visible');
                 });
             });
+        }
+
+        // Render jobs as cards
+        function renderCards(jobs) {
+            const cardsContainer = document.getElementById('cards-view');
+            const jobCount = document.getElementById('job-count');
+
+            jobCount.textContent = `Showing ${jobs.length} of ${allJobs.length} jobs`;
+
+            if (!jobs || jobs.length === 0) {
+                cardsContainer.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No jobs match your filters</p>';
+                return;
+            }
+
+            cardsContainer.innerHTML = jobs.map(job => {
+                const rateClass = getSuccessRateClass(job.success_rate);
+                const trend = calculateTrend(job.recent_builds);
+                const trendIcon = trend === 'up' ? '<span class="trend-indicator trend-up">↗</span>' :
+                                  trend === 'down' ? '<span class="trend-indicator trend-down">↘</span>' :
+                                  trend === 'stable' ? '<span class="trend-indicator trend-stable">→</span>' : '';
+                const sparkline = generateSparkline(job.recent_builds);
+                const quickStats = calculateQuickStats(job);
+                const healthIcon = getHealthIcon(job.success_rate);
+
+                return `
+                    <div class="job-card">
+                        <div class="job-card-header">
+                            <div class="job-card-name">
+                                ${healthIcon} ${escapeHtml(job.name)}
+                                ${trendIcon}
+                            </div>
+                            <div class="job-card-rate ${rateClass}">${job.success_rate.toFixed(1)}%</div>
+                        </div>
+                        <div class="job-card-stats">
+                            <div class="job-card-stat">
+                                <div class="job-card-stat-label">Success</div>
+                                <div class="job-card-stat-value" style="color: var(--success-color)">${job.success}</div>
+                            </div>
+                            <div class="job-card-stat">
+                                <div class="job-card-stat-label">Failure</div>
+                                <div class="job-card-stat-value" style="color: var(--danger-color)">${job.failure}</div>
+                            </div>
+                            <div class="job-card-stat">
+                                <div class="job-card-stat-label">Running</div>
+                                <div class="job-card-stat-value" style="color: var(--info-color)">${job.running}</div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            ${sparkline}
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            <div>Last ${quickStats.lastNTotal}: <strong>${quickStats.lastNPassed}/${quickStats.lastNTotal} passed</strong></div>
+                            ${quickStats.consecutiveFailures > 0 ? `<div style="color: var(--danger-color); font-weight: 600; margin-top: 4px;">⚠️ ${quickStats.consecutiveFailures} consecutive failures!</div>` : ''}
+                            ${quickStats.timeSinceFailure && job.failure > 0 ? `<div style="margin-top: 4px;">Last failure: ${quickStats.timeSinceFailure}</div>` : ''}
+                            <div style="margin-top: 4px;">Avg time: ${formatDuration(job.avg_duration)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         // Update last update timestamp
@@ -1765,6 +2130,25 @@
             document.getElementById('settings-btn').addEventListener('click', toggleSettingsPanel);
             document.getElementById('close-settings').addEventListener('click', toggleSettingsPanel);
             document.getElementById('export-btn').addEventListener('click', exportToCSV);
+
+            // View toggle
+            document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const view = this.getAttribute('data-view');
+                    if (view === 'cards') {
+                        document.getElementById('table-view').style.display = 'none';
+                        document.getElementById('cards-view').style.display = 'grid';
+                        renderCards(filteredJobs);
+                    } else {
+                        document.getElementById('table-view').style.display = 'block';
+                        document.getElementById('cards-view').style.display = 'none';
+                        updateJobsTable(filteredJobs);
+                    }
+                });
+            });
 
             // Job selector dropdown
             const jobSelectorButton = document.getElementById('job-selector-button');
