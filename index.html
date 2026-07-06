@@ -840,6 +840,82 @@
             text-decoration: underline;
         }
 
+        .analyze-log-btn {
+            padding: 4px 10px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .analyze-log-btn:hover {
+            opacity: 0.8;
+        }
+
+        .analyze-log-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .log-summary {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .log-summary-header {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .log-summary-content {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
+        .log-link {
+            color: #90caf9 !important;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .log-link:hover {
+            color: #64b5f6 !important;
+            text-decoration: underline;
+        }
+
+        [data-theme="light"] .log-link {
+            color: #1976d2 !important;
+        }
+
+        [data-theme="light"] .log-link:hover {
+            color: #1565c0 !important;
+        }
+
+        .log-error {
+            color: var(--danger-color);
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .log-loading {
+            color: var(--accent-color);
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
         .alert {
             background: var(--bg-card);
             border: 1px solid var(--warning-color);
@@ -1361,6 +1437,319 @@
             return 'row-low';
         }
 
+        // Cache for analyzed logs
+        const logAnalysisCache = new Map();
+
+        // Generate tox log links from log_url
+        async function analyzeLog(logUrl, buttonElement, summaryContainer) {
+            buttonElement.disabled = true;
+            buttonElement.textContent = 'Generating Links...';
+
+            try {
+                console.log('Generating tox log links for:', logUrl);
+
+                // Construct common tox log URLs
+                const baseUrl = logUrl.endsWith('/') ? logUrl : logUrl + '/';
+                const toxBaseUrl = baseUrl + 'tox/';
+
+                // Common tox environments for Horizon
+                const commonEnvs = [
+                    'pep8',
+                    'py39',
+                    'py310',
+                    'py311',
+                    'py36',
+                    'py38',
+                    'cover',
+                    'docs',
+                    'releasenotes'
+                ];
+
+                const summary = {
+                    logUrl: baseUrl,
+                    toxUrl: toxBaseUrl,
+                    possibleEnvs: commonEnvs,
+                    links: []
+                };
+
+                // Generate links for common log locations
+                commonEnvs.forEach(env => {
+                    summary.links.push({
+                        env: env,
+                        logUrl: `${toxBaseUrl}${env}/log/`,
+                        toxLog: `${toxBaseUrl}${env}/log/tox.log`,
+                        indexHtml: `${toxBaseUrl}${env}/index.html`
+                    });
+                });
+
+                // Also add general links
+                summary.generalLinks = {
+                    toxDir: toxBaseUrl,
+                    jobOutput: baseUrl + 'job-output.txt',
+                    testReports: baseUrl + 'tox/test_reports/'
+                };
+
+                // Display the links
+                displayLogSummary(summary, summaryContainer);
+
+                buttonElement.textContent = '✓ Links Generated';
+            } catch (error) {
+                console.error('Error generating links:', error);
+                summaryContainer.innerHTML = `<div class="log-error">❌ Failed: ${error.message}</div>`;
+                buttonElement.disabled = false;
+                buttonElement.textContent = '🔄 Retry';
+            }
+        }
+
+        // Parse tox logs from log directory
+        async function parseToxLogs(toxDirUrl, baseUrl) {
+            const summary = {
+                toxEnvironments: [],
+                failures: [],
+                errors: []
+            };
+
+            try {
+                // Fetch the tox directory index
+                const response = await fetch(toxDirUrl);
+                if (!response.ok) {
+                    throw new Error(`Could not access tox directory: ${response.status}`);
+                }
+
+                const html = await response.text();
+                console.log('Received tox directory HTML');
+
+                // Parse directory listing to find tox environments (pep8, py39, etc.)
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // Look for directory links (usually <a> tags)
+                const links = doc.querySelectorAll('a');
+                const envDirs = [];
+
+                links.forEach(link => {
+                    const href = link.getAttribute('href');
+                    // Filter out parent directory and non-directory links
+                    if (href && href !== '../' && !href.endsWith('.txt') && !href.endsWith('.log')) {
+                        const envName = href.replace(/\/$/, ''); // Remove trailing slash
+                        envDirs.push(envName);
+                    }
+                });
+
+                console.log('Found tox environments:', envDirs);
+
+                // Fetch logs for each environment
+                for (const envName of envDirs.slice(0, 5)) { // Limit to first 5 environments
+                    const envUrl = toxDirUrl + envName + '/';
+
+                    // Try common log files in tox env
+                    const logFiles = ['log/tox.log', 'log.txt', 'output.txt'];
+
+                    for (const logFile of logFiles) {
+                        try {
+                            const logUrl = envUrl + logFile;
+                            const logResponse = await fetch(logUrl);
+
+                            if (logResponse.ok) {
+                                const logText = await logResponse.text();
+                                console.log(`Found log for ${envName}: ${logFile}`);
+
+                                // Parse the log for errors
+                                const envResult = parseToxEnvLog(envName, logText);
+                                summary.toxEnvironments.push(envResult);
+
+                                if (envResult.failed) {
+                                    summary.failures.push(...envResult.failures);
+                                }
+
+                                break; // Found a log file, move to next env
+                            }
+                        } catch (e) {
+                            console.log(`Could not fetch ${logFile} for ${envName}`);
+                        }
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error parsing tox logs:', error);
+                summary.parseError = error.message;
+            }
+
+            return summary;
+        }
+
+        // Parse individual tox environment log
+        function parseToxEnvLog(envName, logText) {
+            const result = {
+                env: envName,
+                failed: false,
+                failures: [],
+                errors: [],
+                summary: null
+            };
+
+            const lines = logText.split('\n');
+
+            // Look for common failure patterns
+            let inFailureSection = false;
+            let failureBuffer = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Detect failure markers
+                if (/FAILED|ERROR|ERRORS/i.test(line)) {
+                    result.failed = true;
+                    inFailureSection = true;
+                    failureBuffer = [line];
+                } else if (inFailureSection) {
+                    // Collect context around failures
+                    failureBuffer.push(line);
+
+                    // Stop after 20 lines or when we hit a blank line followed by a new section
+                    if (failureBuffer.length > 20 || (line.trim() === '' && lines[i + 1]?.startsWith('==='))) {
+                        result.failures.push({
+                            context: failureBuffer.join('\n')
+                        });
+                        inFailureSection = false;
+                        failureBuffer = [];
+                    }
+                }
+
+                // Look for test failure summaries
+                if (line.includes('failed,') || line.includes('error')) {
+                    result.errors.push(line.trim());
+                }
+
+                // Capture summary line (usually at the end)
+                if (/=+ (FAILURES|ERRORS) =+/.test(line)) {
+                    result.summary = lines.slice(Math.max(0, i - 5), i + 20).join('\n');
+                }
+            }
+
+            // If no specific failures found but errors exist, use last 50 lines
+            if (result.failed && result.failures.length === 0) {
+                result.failures.push({
+                    context: lines.slice(-50).join('\n')
+                });
+            }
+
+            return result;
+        }
+
+        // Parse Zuul build data from API
+        function parseZuulBuildData(buildData) {
+            const summary = {
+                failedTasks: [],
+                taskResults: [],
+                buildInfo: {
+                    job: buildData.job_name,
+                    result: buildData.result,
+                    duration: buildData.duration,
+                    pipeline: buildData.pipeline,
+                    branch: buildData.branch,
+                    ref: buildData.ref
+                },
+                playRecap: {}
+            };
+
+            try {
+                // Process plays (Ansible playbook execution)
+                if (buildData.plays && Array.isArray(buildData.plays)) {
+                    buildData.plays.forEach(play => {
+                        const playName = play.play?.name || play.name || 'Unnamed play';
+
+                        if (play.tasks && Array.isArray(play.tasks)) {
+                            play.tasks.forEach(task => {
+                                const taskName = task.name || 'Unnamed task';
+
+                                // Check task results on each host
+                                if (task.hosts) {
+                                    Object.entries(task.hosts).forEach(([hostname, result]) => {
+                                        // Track in task results
+                                        const taskResult = {
+                                            play: playName,
+                                            task: taskName,
+                                            host: hostname,
+                                            status: result.failed ? 'FAILED' :
+                                                   result.skipped ? 'SKIPPED' :
+                                                   result.changed ? 'CHANGED' : 'OK'
+                                        };
+
+                                        summary.taskResults.push(taskResult);
+
+                                        // Track failed tasks
+                                        if (result.failed) {
+                                            summary.failedTasks.push({
+                                                play: playName,
+                                                name: taskName,
+                                                host: hostname,
+                                                msg: result.msg || 'No error message',
+                                                stdout: result.stdout || result.stdout_lines?.join('\n') || '',
+                                                stderr: result.stderr || result.stderr_lines?.join('\n') || '',
+                                                cmd: result.cmd || '',
+                                                rc: result.rc
+                                            });
+                                        }
+
+                                        // Build play recap
+                                        if (!summary.playRecap[hostname]) {
+                                            summary.playRecap[hostname] = {
+                                                ok: 0,
+                                                changed: 0,
+                                                unreachable: 0,
+                                                failed: 0,
+                                                skipped: 0,
+                                                rescued: 0,
+                                                ignored: 0
+                                            };
+                                        }
+
+                                        if (result.failed) summary.playRecap[hostname].failed++;
+                                        else if (result.skipped) summary.playRecap[hostname].skipped++;
+                                        else if (result.changed) summary.playRecap[hostname].changed++;
+                                        else summary.playRecap[hostname].ok++;
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+
+                console.log('Parsed Zuul build data:', {
+                    plays: buildData.plays?.length || 0,
+                    failedTasks: summary.failedTasks.length,
+                    taskResults: summary.taskResults.length
+                });
+
+            } catch (error) {
+                console.error('Error parsing Zuul build data:', error);
+                summary.parseError = error.message;
+            }
+
+            return summary;
+        }
+
+        // Display tox log links
+        function displayLogSummary(summary, container) {
+            let html = '<div class="log-summary">';
+            html += '<div class="log-summary-header">📋 Log Links</div>';
+            html += '<div class="log-summary-content">';
+
+            // General links
+            if (summary.generalLinks) {
+                html += `<strong>📂 Logs:</strong>\n`;
+                html += `• <a href="${escapeHtml(summary.generalLinks.toxDir)}" target="_blank" class="log-link">Tox Directory</a>\n`;
+                html += `• <a href="${escapeHtml(summary.generalLinks.jobOutput)}" target="_blank" class="log-link">Job Output</a>\n`;
+                html += `• <a href="${escapeHtml(summary.generalLinks.testReports)}" target="_blank" class="log-link">Test Reports</a>\n\n`;
+            }
+
+            html += `<strong>💡 Tip:</strong> Browse the Tox Directory to find specific test environment logs.\n`;
+
+            html += '</div></div>';
+            container.innerHTML = html;
+        }
+
         // Show alert message
         function showAlert(message, type = 'warning') {
             const container = document.getElementById('alert-container');
@@ -1452,11 +1841,16 @@
                 } else if (result === 'FAILURE') {
                     job.failure++;
                     // Collect failure information
+                    // Construct Zuul build page URL from uuid
+                    const buildUrl = build.uuid ?
+                        `https://zuul.opendev.org/t/openstack/build/${build.uuid}` :
+                        (build.ref_url || build.log_url);
+
                     job.failures.push({
                         timestamp: build.end_time,
                         log_url: build.log_url,
-                        ref_url: build.ref_url,
-                        error_detail: build.error_detail || 'Unknown error'
+                        ref_url: buildUrl,
+                        error_detail: build.error_detail || build.result || 'Build failed'
                     });
                 } else if (result === null) {
                     job.running++;
@@ -1520,13 +1914,18 @@
                     errorPatterns[detail] = {
                         count: 0,
                         lastOccurrence: null,
-                        log_urls: []
+                        log_urls: [],
+                        build_urls: []
                     };
                 }
                 errorPatterns[detail].count++;
                 errorPatterns[detail].lastOccurrence = failure.timestamp;
+                // Store both log_url (for analysis) and ref_url (for viewing)
                 if (failure.log_url) {
                     errorPatterns[detail].log_urls.push(failure.log_url);
+                }
+                if (failure.ref_url) {
+                    errorPatterns[detail].build_urls.push(failure.ref_url);
                 }
             });
 
@@ -1537,7 +1936,8 @@
                     count: data.count,
                     percentage: (data.count / failures.length) * 100,
                     lastOccurrence: data.lastOccurrence,
-                    log_urls: data.log_urls.slice(0, 3) // Keep first 3 log URLs
+                    log_urls: data.log_urls.slice(0, 3), // Keep first 3 log URLs for analysis
+                    build_urls: data.build_urls.slice(0, 3) // Keep first 3 build URLs for viewing
                 }))
                 .sort((a, b) => b.count - a.count)
                 .slice(0, 5); // Top 5 failure reasons
@@ -1883,20 +2283,26 @@
 
                 // Add failure details row if there are failures
                 if (hasFailures) {
-                    const failureDetailsHtml = job.failure_reasons.map(reason => `
-                        <div class="failure-reason">
+                    const failureDetailsHtml = job.failure_reasons.map((reason, reasonIdx) => `
+                        <div class="failure-reason" id="failure-reason-${index}-${reasonIdx}">
                             <div class="failure-reason-header">
                                 <span>${reason.count} occurrence${reason.count > 1 ? 's' : ''}</span>
                                 <span class="failure-count">${reason.percentage.toFixed(0)}%</span>
                             </div>
                             <div class="failure-error">${escapeHtml(reason.error)}</div>
-                            ${reason.log_urls && reason.log_urls.length > 0 ? `
-                                <div class="failure-links">
-                                    ${reason.log_urls.map((url, i) =>
-                                        `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">Log ${i + 1}</a>`
-                                    ).join('')}
-                                </div>
-                            ` : ''}
+                            <div class="failure-links">
+                                ${reason.build_urls && reason.build_urls.length > 0 ?
+                                    reason.build_urls.map((url, i) =>
+                                        `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">Build ${i + 1}</a>`
+                                    ).join('')
+                                : ''}
+                                ${reason.log_urls && reason.log_urls.length > 0 ? `
+                                    <button class="analyze-log-btn" data-log-url="${escapeHtml(reason.log_urls[0])}" data-target="log-summary-${index}-${reasonIdx}">
+                                        🔗 View Tox Logs
+                                    </button>
+                                ` : '<span style="color: var(--text-secondary); font-size: 11px;">No log URL available</span>'}
+                            </div>
+                            <div id="log-summary-${index}-${reasonIdx}"></div>
                         </div>
                     `).join('');
 
@@ -1923,6 +2329,17 @@
 
                     this.classList.toggle('expanded');
                     detailsRow.classList.toggle('visible');
+                });
+            });
+
+            // Add click handlers for analyze log buttons
+            document.querySelectorAll('.analyze-log-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Don't trigger row expansion
+                    const logUrl = this.getAttribute('data-log-url');
+                    const targetId = this.getAttribute('data-target');
+                    const summaryContainer = document.getElementById(targetId);
+                    analyzeLog(logUrl, this, summaryContainer);
                 });
             });
         }
