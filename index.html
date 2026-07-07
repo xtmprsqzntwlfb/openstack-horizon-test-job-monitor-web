@@ -2503,6 +2503,8 @@
                 new Date(b.timestamp) - new Date(a.timestamp)
             );
 
+            console.log('Build history data:', builds);
+
             let html = '<table class="build-history-table">';
             html += '<thead><tr>';
             html += '<th>Date/Time</th>';
@@ -2521,20 +2523,39 @@
                 const statusText = build.result || 'RUNNING';
                 const duration = build.duration ? formatDuration(build.duration) : 'N/A';
 
-                // Build change/patch info
+                // Build change/patch info with links
                 let changePatch = '';
+                let changeNumber = null;
+
                 if (build.change && build.patchset) {
+                    changeNumber = build.change;
                     changePatch = `${build.change},${build.patchset}`;
-                } else if (build.ref && typeof build.ref === 'string') {
-                    // Extract meaningful part from ref
-                    const refMatch = build.ref.match(/refs\/changes\/\d+\/(\d+)\/(\d+)/);
-                    if (refMatch) {
-                        changePatch = `${refMatch[1]},${refMatch[2]}`;
+                } else if (build.ref) {
+                    // build.ref is an object with a 'ref' property
+                    const refString = typeof build.ref === 'string' ? build.ref : build.ref.ref;
+                    if (refString) {
+                        // Extract change/patch from ref like "refs/changes/12/123456/7"
+                        const refMatch = refString.match(/refs\/changes\/\d+\/(\d+)\/(\d+)/);
+                        if (refMatch) {
+                            changeNumber = refMatch[1];
+                            changePatch = `${refMatch[1]},${refMatch[2]}`;
+                        } else if (refString.includes('refs/heads/')) {
+                            // Branch commit (not a review)
+                            changePatch = refString.replace('refs/heads/', '');
+                        } else {
+                            changePatch = refString.substring(0, 20) + '...';
+                        }
                     } else {
-                        changePatch = build.ref.substring(0, 20) + '...';
+                        changePatch = 'N/A';
                     }
                 } else {
                     changePatch = 'N/A';
+                }
+
+                // Make change/patch clickable if we have a change number
+                if (changeNumber) {
+                    const gerritUrl = `https://review.opendev.org/c/${changeNumber}`;
+                    changePatch = `<a href="${gerritUrl}" target="_blank" rel="noopener">${escapeHtml(changePatch)}</a>`;
                 }
 
                 // Build links
@@ -2551,7 +2572,7 @@
                 html += `<td>${escapeHtml(timestamp)}</td>`;
                 html += `<td class="${statusClass}">${escapeHtml(statusText)}</td>`;
                 html += `<td>${escapeHtml(duration)}</td>`;
-                html += `<td>${escapeHtml(changePatch)}</td>`;
+                html += `<td>${changePatch}</td>`;
                 html += `<td>${links}</td>`;
                 html += '</tr>';
             });
