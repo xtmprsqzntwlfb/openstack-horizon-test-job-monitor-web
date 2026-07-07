@@ -818,6 +818,64 @@
             font-size: 12px;
         }
 
+        .build-history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+
+        .build-history-table th {
+            background: var(--bg-secondary);
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .build-history-table td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .build-history-table tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .build-status-success {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+
+        .build-status-failure {
+            color: var(--danger-color);
+            font-weight: 600;
+        }
+
+        .build-status-running {
+            color: var(--info-color);
+            font-weight: 600;
+        }
+
+        .build-history-table a {
+            color: #90caf9;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .build-history-table a:hover {
+            color: #64b5f6;
+            text-decoration: underline;
+        }
+
+        [data-theme="light"] .build-history-table a {
+            color: #1976d2;
+        }
+
+        [data-theme="light"] .build-history-table a:hover {
+            color: #1565c0;
+        }
+
         .failure-error {
             color: var(--text-secondary);
             font-size: 13px;
@@ -1442,6 +1500,16 @@
 
         // Generate tox log links from log_url
         async function analyzeLog(logUrl, buttonElement, summaryContainer) {
+            // Validate inputs
+            if (!logUrl || !summaryContainer) {
+                console.error('Missing logUrl or summaryContainer');
+                if (buttonElement) {
+                    buttonElement.disabled = false;
+                    buttonElement.textContent = '🔗 View Tox Logs';
+                }
+                return;
+            }
+
             buttonElement.disabled = true;
             buttonElement.textContent = 'Generating Links...';
 
@@ -1868,7 +1936,13 @@
                 job.recentBuilds.push({
                     result: result,
                     timestamp: build.end_time,
-                    duration: build.duration
+                    duration: build.duration,
+                    change: build.change,
+                    patchset: build.patchset,
+                    ref: build.ref,
+                    uuid: build.uuid,
+                    log_url: build.log_url,
+                    ref_url: build.ref_url
                 });
             });
 
@@ -2312,6 +2386,10 @@
                                 <div class="failure-details">
                                     <h4 style="margin-bottom: 12px;">Failure Analysis (${job.failure} total failures)</h4>
                                     ${failureDetailsHtml}
+                                    <button class="analyze-log-btn" style="margin-top: 12px;" onclick="toggleBuildHistory(${index})">
+                                        📊 View Build History
+                                    </button>
+                                    <div id="build-history-${index}" style="display: none;"></div>
                                 </div>
                             </td>
                         </tr>
@@ -2401,6 +2479,85 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // Toggle build history display
+        function toggleBuildHistory(jobIndex) {
+            const historyDiv = document.getElementById(`build-history-${jobIndex}`);
+            const job = filteredJobs[jobIndex];
+
+            if (historyDiv.style.display === 'none') {
+                // Show history
+                renderBuildHistory(historyDiv, job);
+                historyDiv.style.display = 'block';
+            } else {
+                // Hide history
+                historyDiv.style.display = 'none';
+            }
+        }
+
+        // Render build history table
+        function renderBuildHistory(container, job) {
+            // Sort builds by timestamp (newest first)
+            const builds = [...job.recent_builds].sort((a, b) =>
+                new Date(b.timestamp) - new Date(a.timestamp)
+            );
+
+            let html = '<table class="build-history-table">';
+            html += '<thead><tr>';
+            html += '<th>Date/Time</th>';
+            html += '<th>Result</th>';
+            html += '<th>Duration</th>';
+            html += '<th>Change/Patch</th>';
+            html += '<th>Links</th>';
+            html += '</tr></thead>';
+            html += '<tbody>';
+
+            builds.forEach(build => {
+                const timestamp = build.timestamp ? new Date(build.timestamp).toLocaleString() : 'Unknown';
+                const statusClass = build.result === 'SUCCESS' ? 'build-status-success' :
+                                  build.result === 'FAILURE' ? 'build-status-failure' :
+                                  'build-status-running';
+                const statusText = build.result || 'RUNNING';
+                const duration = build.duration ? formatDuration(build.duration) : 'N/A';
+
+                // Build change/patch info
+                let changePatch = '';
+                if (build.change && build.patchset) {
+                    changePatch = `${build.change},${build.patchset}`;
+                } else if (build.ref && typeof build.ref === 'string') {
+                    // Extract meaningful part from ref
+                    const refMatch = build.ref.match(/refs\/changes\/\d+\/(\d+)\/(\d+)/);
+                    if (refMatch) {
+                        changePatch = `${refMatch[1]},${refMatch[2]}`;
+                    } else {
+                        changePatch = build.ref.substring(0, 20) + '...';
+                    }
+                } else {
+                    changePatch = 'N/A';
+                }
+
+                // Build links
+                const buildUrl = build.uuid ? `https://zuul.opendev.org/t/openstack/build/${build.uuid}` : build.ref_url;
+                let links = '';
+                if (buildUrl) {
+                    links += `<a href="${escapeHtml(buildUrl)}" target="_blank" rel="noopener">Build</a>`;
+                }
+                if (build.log_url) {
+                    links += ` <a href="${escapeHtml(build.log_url)}" target="_blank" rel="noopener">Logs</a>`;
+                }
+
+                html += '<tr>';
+                html += `<td>${escapeHtml(timestamp)}</td>`;
+                html += `<td class="${statusClass}">${escapeHtml(statusText)}</td>`;
+                html += `<td>${escapeHtml(duration)}</td>`;
+                html += `<td>${escapeHtml(changePatch)}</td>`;
+                html += `<td>${links}</td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
         }
 
         // Update last update timestamp
