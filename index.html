@@ -674,6 +674,7 @@
                 limit: limit.toString()
             });
 
+            console.log(`Fetching builds: ${url}?${params}`);
             const response = await fetch(`${url}?${params}`, {
                 method: 'GET',
                 headers: {
@@ -685,7 +686,9 @@
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            return await response.json();
+            const builds = await response.json();
+            console.log(`Fetched ${builds.length} builds. Latest:`, builds[0]?.end_time, 'Oldest:', builds[builds.length - 1]?.end_time);
+            return builds;
         }
 
         // Process builds into job statistics
@@ -694,11 +697,15 @@
             const now = new Date();
             const cutoffTime = timePeriodDays ? new Date(now - timePeriodDays * 24 * 60 * 60 * 1000) : null;
 
+            console.log(`Processing ${builds.length} builds. Time period: ${timePeriodDays} days. Cutoff: ${cutoffTime}`);
+
+            let filteredCount = 0;
             builds.forEach(build => {
                 // Filter by time period if specified
                 if (cutoffTime && build.end_time) {
                     const buildTime = new Date(build.end_time);
                     if (buildTime < cutoffTime) {
+                        filteredCount++;
                         return; // Skip builds outside time period
                     }
                 }
@@ -762,6 +769,11 @@
                     log_url: build.log_url,
                     ref_url: build.ref_url
                 });
+
+                // Debug: log first build for openstack-tox-pep8
+                if (jobName === 'openstack-tox-pep8' && job.recentBuilds.length === 1) {
+                    console.log(`First build for ${jobName}:`, build.end_time, build.result);
+                }
             });
 
             // Convert to array with statistics
@@ -786,10 +798,11 @@
                     last_run: data.lastRun,
                     success_rate: successRate,
                     failure_reasons: failureReasons,
-                    recent_builds: data.recentBuilds.slice(-10) // Keep last 10
+                    recent_builds: data.recentBuilds.slice(0, 10) // Keep first 10 (newest)
                 };
             });
 
+            console.log(`Processed ${jobs.length} jobs. Filtered out ${filteredCount} old builds.`);
             return jobs;
         }
 
