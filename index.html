@@ -201,14 +201,14 @@
                 </select>
             </div>
             <div class="control-group" style="margin-top: 12px;">
-                <label class="control-label">Fetch Limit (builds)</label>
-                <select id="fetch-limit-select" class="input">
+                <label class="control-label">Builds Per Job</label>
+                <select id="builds-per-job-select" class="input">
+                    <option value="10">10 builds</option>
+                    <option value="20" selected>20 builds</option>
+                    <option value="50">50 builds</option>
                     <option value="100">100 builds</option>
-                    <option value="200">200 builds</option>
-                    <option value="500">500 builds</option>
-                    <option value="1000" selected>1000 builds</option>
-                    <option value="10000">10000 builds</option>
                 </select>
+                <div class="setting-description">Number of recent builds to display per job</div>
             </div>
             <button id="apply-changes-btn" class="btn apply-changes-btn">
                 ↻ Refresh to Apply Changes
@@ -231,7 +231,7 @@
         // Settings with defaults
         let settings = {
             refreshInterval: 300000, // 5 minutes
-            fetchLimit: 1000,
+            buildsPerJob: 20, // Number of recent builds to keep per job
             theme: 'dark',
             showHealthIcons: true,
             desktopNotifications: false,
@@ -273,7 +273,7 @@
             document.getElementById('notifications-toggle').classList.toggle('active', settings.desktopNotifications);
             document.getElementById('notify-failures-toggle').classList.toggle('active', settings.notifyOnFailures);
             document.getElementById('refresh-interval-select').value = settings.refreshInterval / 1000;
-            document.getElementById('fetch-limit-select').value = settings.fetchLimit;
+            document.getElementById('builds-per-job-select').value = settings.buildsPerJob;
             const timePeriodValue = (settings.timePeriod === null || settings.timePeriod === 'all') ? 'all' : settings.timePeriod.toString();
             document.getElementById('time-period-select').value = timePeriodValue;
         }
@@ -798,7 +798,7 @@
                     last_run: data.lastRun,
                     success_rate: successRate,
                     failure_reasons: failureReasons,
-                    recent_builds: data.recentBuilds.slice(0, 10) // Keep first 10 (newest)
+                    recent_builds: data.recentBuilds.slice(0, settings.buildsPerJob) // Keep N newest builds
                 };
             });
 
@@ -1477,7 +1477,8 @@
         async function fetchStats() {
             try {
                 clearAlert();
-                const builds = await fetchBuilds(settings.fetchLimit);
+                // Fetch a large number of builds to ensure we have enough for each job
+                const builds = await fetchBuilds(5000);
                 const timePeriod = settings.timePeriod === 'all' ? null : parseInt(settings.timePeriod);
                 allJobs = processBuilds(builds, timePeriod);
 
@@ -1687,8 +1688,8 @@
                 document.getElementById('apply-changes-btn').classList.add('visible');
             });
 
-            document.getElementById('fetch-limit-select').addEventListener('change', function() {
-                settings.fetchLimit = parseInt(this.value);
+            document.getElementById('builds-per-job-select').addEventListener('change', function() {
+                settings.buildsPerJob = parseInt(this.value);
                 saveSettings();
                 document.getElementById('apply-changes-btn').classList.add('visible');
             });
