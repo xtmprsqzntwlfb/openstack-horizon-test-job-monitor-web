@@ -1161,7 +1161,7 @@
                 const rowClass = getRowClass(job.success_rate);
                 const healthIcon = getHealthIcon(job.success_rate);
                 const hasFailures = job.failure > 0 && job.failure_reasons && job.failure_reasons.length > 0;
-                const expandIcon = hasFailures ? '<span class="expand-icon">▶</span>' : '';
+                const expandIcon = '<span class="expand-icon">▶</span>';
 
                 // Calculate trend and quick stats
                 const trend = calculateTrend(job.recent_builds);
@@ -1173,7 +1173,7 @@
                 const quickStats = calculateQuickStats(job);
 
                 let mainRow = `
-                    <tr class="${rowClass} ${hasFailures ? 'expandable-row' : ''}" data-job-index="${index}">
+                    <tr class="${rowClass} expandable-row" data-job-index="${index}">
                         <td class="job-name">
                             ${expandIcon}
                             <span class="health-icon">${healthIcon}</span>
@@ -1195,18 +1195,16 @@
                     </tr>
                 `;
 
-                // Add build history row
-                if (hasFailures) {
-                    mainRow += `
-                        <tr class="failure-details-row" data-job-index="${index}">
-                            <td colspan="7">
-                                <div class="failure-details">
-                                    <div id="build-history-${index}"></div>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }
+                // Add build history row for all jobs
+                mainRow += `
+                    <tr class="failure-details-row" data-job-index="${index}">
+                        <td colspan="7">
+                            <div class="failure-details">
+                                <div id="build-history-${index}"></div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
 
                 return mainRow;
             }).join('');
