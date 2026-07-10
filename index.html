@@ -323,13 +323,13 @@
                 console.error('Missing logUrl or summaryContainer');
                 if (buttonElement) {
                     buttonElement.disabled = false;
-                    buttonElement.textContent = '🔗 View Tox Logs';
+                    buttonElement.innerHTML = '🔗 View Tox Logs ▼';
                 }
                 return;
             }
 
             buttonElement.disabled = true;
-            buttonElement.textContent = 'Generating Links...';
+            buttonElement.innerHTML = '🔗 Generating Links...';
 
             try {
                 console.log('Generating tox log links for:', logUrl);
@@ -377,13 +377,16 @@
 
                 // Display the links
                 displayLogSummary(summary, summaryContainer);
+                summaryContainer.style.display = 'block';
 
-                buttonElement.textContent = '✓ Links Generated';
+                buttonElement.disabled = false;
+                buttonElement.innerHTML = '🔗 View Tox Logs ▲';
             } catch (error) {
                 console.error('Error generating links:', error);
                 summaryContainer.innerHTML = `<div class="log-error">❌ Failed: ${error.message}</div>`;
+                summaryContainer.style.display = 'block';
                 buttonElement.disabled = false;
-                buttonElement.textContent = '🔄 Retry';
+                buttonElement.innerHTML = '🔗 View Tox Logs ▲';
             }
         }
 
@@ -767,7 +770,9 @@
                     ref: build.ref,
                     uuid: build.uuid,
                     log_url: build.log_url,
-                    ref_url: build.ref_url
+                    ref_url: build.ref_url,
+                    pipeline: build.pipeline,
+                    branch: build.branch || (build.ref && build.ref.branch) || null
                 });
 
                 // Debug: log first build for openstack-tox-pep8
@@ -1190,41 +1195,13 @@
                     </tr>
                 `;
 
-                // Add failure details row if there are failures
+                // Add build history row
                 if (hasFailures) {
-                    const failureDetailsHtml = job.failure_reasons.map((reason, reasonIdx) => `
-                        <div class="failure-reason" id="failure-reason-${index}-${reasonIdx}">
-                            <div class="failure-reason-header">
-                                <span>${reason.count} occurrence${reason.count > 1 ? 's' : ''}</span>
-                                <span class="failure-count">${reason.percentage.toFixed(0)}%</span>
-                            </div>
-                            <div class="failure-error">${escapeHtml(reason.error)}</div>
-                            <div class="failure-links">
-                                ${reason.build_urls && reason.build_urls.length > 0 ?
-                                    reason.build_urls.map((url, i) =>
-                                        `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">Build ${i + 1}</a>`
-                                    ).join('')
-                                : ''}
-                                ${reason.log_urls && reason.log_urls.length > 0 ? `
-                                    <button class="analyze-log-btn" data-log-url="${escapeHtml(reason.log_urls[0])}" data-target="log-summary-${index}-${reasonIdx}">
-                                        🔗 View Tox Logs
-                                    </button>
-                                ` : '<span style="color: var(--text-secondary); font-size: 11px;">No log URL available</span>'}
-                            </div>
-                            <div id="log-summary-${index}-${reasonIdx}"></div>
-                        </div>
-                    `).join('');
-
                     mainRow += `
                         <tr class="failure-details-row" data-job-index="${index}">
                             <td colspan="7">
                                 <div class="failure-details">
-                                    <h4 style="margin-bottom: 12px;">Failure Analysis (${job.failure} total failures)</h4>
-                                    ${failureDetailsHtml}
-                                    <button class="analyze-log-btn" style="margin-top: 12px;" onclick="toggleBuildHistory(${index})">
-                                        📊 View Build History
-                                    </button>
-                                    <div id="build-history-${index}" style="display: none;"></div>
+                                    <div id="build-history-${index}"></div>
                                 </div>
                             </td>
                         </tr>
@@ -1242,17 +1219,38 @@
 
                     this.classList.toggle('expanded');
                     detailsRow.classList.toggle('visible');
+
+                    // Render build history if expanding and not already rendered
+                    if (detailsRow.classList.contains('visible')) {
+                        const historyContainer = document.getElementById(`build-history-${index}`);
+                        if (historyContainer && !historyContainer.innerHTML) {
+                            const job = filteredJobs[index];
+                            renderBuildHistory(historyContainer, job);
+                        }
+                    }
                 });
             });
 
             // Add click handlers for analyze log buttons
             document.querySelectorAll('.analyze-log-btn').forEach(btn => {
+                // Skip build history buttons (they use onclick)
+                if (btn.id && btn.id.startsWith('history-btn-')) return;
+
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation(); // Don't trigger row expansion
                     const logUrl = this.getAttribute('data-log-url');
                     const targetId = this.getAttribute('data-target');
                     const summaryContainer = document.getElementById(targetId);
-                    analyzeLog(logUrl, this, summaryContainer);
+
+                    // Toggle behavior
+                    if (summaryContainer.style.display === 'none' || !summaryContainer.innerHTML) {
+                        // Show and generate if needed
+                        analyzeLog(logUrl, this, summaryContainer);
+                    } else {
+                        // Hide
+                        summaryContainer.style.display = 'none';
+                        this.innerHTML = '🔗 View Tox Logs ▼';
+                    }
                 });
             });
         }
@@ -1319,15 +1317,18 @@
         // Toggle build history display
         function toggleBuildHistory(jobIndex) {
             const historyDiv = document.getElementById(`build-history-${jobIndex}`);
+            const button = document.getElementById(`history-btn-${jobIndex}`);
             const job = filteredJobs[jobIndex];
 
             if (historyDiv.style.display === 'none') {
                 // Show history
                 renderBuildHistory(historyDiv, job);
                 historyDiv.style.display = 'block';
+                button.innerHTML = '📊 View Build History ▲';
             } else {
                 // Hide history
                 historyDiv.style.display = 'none';
+                button.innerHTML = '📊 View Build History ▼';
             }
         }
 
@@ -1340,13 +1341,17 @@
 
             console.log('Build history data:', builds);
 
-            let html = '<table class="build-history-table">';
+            let html = '<h4 style="margin-bottom: 12px;">Build History</h4>';
+            html += '<table class="build-history-table">';
             html += '<thead><tr>';
             html += '<th>Date/Time</th>';
             html += '<th>Result</th>';
             html += '<th>Duration</th>';
-            html += '<th>Change/Patch</th>';
-            html += '<th>Links</th>';
+            html += '<th>Branch</th>';
+            html += '<th>Pipeline</th>';
+            html += '<th>Change</th>';
+            html += '<th>Build</th>';
+            html += '<th>Logs</th>';
             html += '</tr></thead>';
             html += '<tbody>';
 
@@ -1358,57 +1363,54 @@
                 const statusText = build.result || 'RUNNING';
                 const duration = build.duration ? formatDuration(build.duration) : 'N/A';
 
-                // Build change/patch info with links
-                let changePatch = '';
+                // Branch
+                const branch = build.branch || 'N/A';
+
+                // Pipeline
+                const pipeline = build.pipeline || 'N/A';
+
+                // Change - link to Gerrit review or show branch commit
+                let changeHtml = '';
                 let changeNumber = null;
 
                 if (build.change && build.patchset) {
                     changeNumber = build.change;
-                    changePatch = `${build.change},${build.patchset}`;
+                } else if (build.ref && build.ref.change) {
+                    changeNumber = build.ref.change;
                 } else if (build.ref) {
-                    // build.ref is an object with a 'ref' property
+                    // Extract from ref string
                     const refString = typeof build.ref === 'string' ? build.ref : build.ref.ref;
                     if (refString) {
-                        // Extract change/patch from ref like "refs/changes/12/123456/7"
                         const refMatch = refString.match(/refs\/changes\/\d+\/(\d+)\/(\d+)/);
                         if (refMatch) {
                             changeNumber = refMatch[1];
-                            changePatch = `${refMatch[1]},${refMatch[2]}`;
-                        } else if (refString.includes('refs/heads/')) {
-                            // Branch commit (not a review)
-                            changePatch = refString.replace('refs/heads/', '');
-                        } else {
-                            changePatch = refString.substring(0, 20) + '...';
                         }
-                    } else {
-                        changePatch = 'N/A';
                     }
-                } else {
-                    changePatch = 'N/A';
                 }
 
-                // Make change/patch clickable if we have a change number
                 if (changeNumber) {
                     const gerritUrl = `https://review.opendev.org/c/${changeNumber}`;
-                    changePatch = `<a href="${gerritUrl}" target="_blank" rel="noopener">${escapeHtml(changePatch)}</a>`;
+                    changeHtml = `<a href="${gerritUrl}" target="_blank" rel="noopener">${escapeHtml(changeNumber)}</a>`;
+                } else {
+                    changeHtml = `<span style="color: var(--text-secondary);">-</span>`;
                 }
 
-                // Build links
+                // Build link
                 const buildUrl = build.uuid ? `https://zuul.opendev.org/t/openstack/build/${build.uuid}` : build.ref_url;
-                let links = '';
-                if (buildUrl) {
-                    links += `<a href="${escapeHtml(buildUrl)}" target="_blank" rel="noopener">Build</a>`;
-                }
-                if (build.log_url) {
-                    links += ` <a href="${escapeHtml(build.log_url)}" target="_blank" rel="noopener">Logs</a>`;
-                }
+                const buildLink = buildUrl ? `<a href="${escapeHtml(buildUrl)}" target="_blank" rel="noopener">🔗</a>` : '<span style="color: var(--text-secondary);">-</span>';
+
+                // Logs link
+                const logsLink = build.log_url ? `<a href="${escapeHtml(build.log_url)}" target="_blank" rel="noopener">📄</a>` : '<span style="color: var(--text-secondary);">-</span>';
 
                 html += '<tr>';
                 html += `<td>${escapeHtml(timestamp)}</td>`;
                 html += `<td class="${statusClass}">${escapeHtml(statusText)}</td>`;
                 html += `<td>${escapeHtml(duration)}</td>`;
-                html += `<td>${changePatch}</td>`;
-                html += `<td>${links}</td>`;
+                html += `<td>${escapeHtml(branch)}</td>`;
+                html += `<td>${escapeHtml(pipeline)}</td>`;
+                html += `<td>${changeHtml}</td>`;
+                html += `<td>${buildLink}</td>`;
+                html += `<td>${logsLink}</td>`;
                 html += '</tr>';
             });
 
