@@ -123,17 +123,16 @@
                     <thead>
                         <tr>
                             <th class="job-name-col sortable" data-sort="name">Job Name</th>
-                            <th class="sortable" data-sort="total">Total</th>
-                            <th class="sortable" data-sort="success">✓</th>
-                            <th class="sortable" data-sort="failure">✗</th>
-                            <th class="sortable" data-sort="running">▶</th>
+                            <th class="sparkline-col">Sparkline</th>
+                            <th class="sortable" data-sort="last20">Last 20</th>
+                            <th class="sortable" data-sort="lastfailure">Last Failure</th>
                             <th class="sortable" data-sort="rate">Success %</th>
                             <th class="sortable" data-sort="duration">Avg Time</th>
                         </tr>
                     </thead>
                     <tbody id="jobs-tbody">
                         <tr>
-                            <td colspan="7" class="loading-row">Loading data...</td>
+                            <td colspan="6" class="loading-row">Loading data...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -297,6 +296,45 @@
 
             const hours = minutes / 60;
             return `${hours.toFixed(1)}h`;
+        }
+
+        // Get Last 20 builds summary
+        function getLast20Summary(job) {
+            const recent = job.recent_builds || [];
+            const total = Math.min(recent.length, 20);
+
+            if (total === 0) return '<span style="color: var(--text-secondary);">No data</span>';
+
+            const passed = recent.slice(0, 20).filter(b => b.result === 'SUCCESS').length;
+
+            return `${passed}/${total} passed`;
+        }
+
+        // Get last failure time
+        function getLastFailureTime(job) {
+            const recent = job.recent_builds || [];
+            const lastFailure = recent.find(b => b.result === 'FAILURE');
+
+            if (!lastFailure || !lastFailure.timestamp) {
+                return '<span style="color: var(--text-secondary);">-</span>';
+            }
+
+            const failureDate = new Date(lastFailure.timestamp);
+            const now = new Date();
+            const diffMs = now - failureDate;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffDays > 7) {
+                return failureDate.toLocaleDateString();
+            } else if (diffDays > 0) {
+                return `${diffDays}d ago`;
+            } else if (diffHours > 0) {
+                return `${diffHours}h ago`;
+            } else {
+                const diffMins = Math.floor(diffMs / (1000 * 60));
+                return `${diffMins}m ago`;
+            }
         }
 
         // Get color class based on success rate
@@ -881,10 +919,10 @@
         function generateSparkline(recentBuilds) {
             if (!recentBuilds || recentBuilds.length === 0) return '';
 
-            // Sort by timestamp and take last 10
+            // Sort by timestamp and take last 20
             const sorted = [...recentBuilds]
                 .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-                .slice(-10);
+                .slice(-20);
 
             const dots = sorted.map(build => {
                 let className = 'sparkline-dot ';
@@ -900,51 +938,6 @@
         }
 
         // Calculate quick stats for a job
-        function calculateQuickStats(job) {
-            const lastNBuilds = job.recent_builds.slice(-10);
-            const lastNPassed = lastNBuilds.filter(b => b.result === 'SUCCESS').length;
-            const lastNTotal = lastNBuilds.length;
-
-            // Count consecutive failures
-            let consecutiveFailures = 0;
-            const sorted = [...job.recent_builds].sort((a, b) =>
-                new Date(b.timestamp) - new Date(a.timestamp)
-            );
-            for (const build of sorted) {
-                if (build.result === 'FAILURE') {
-                    consecutiveFailures++;
-                } else {
-                    break;
-                }
-            }
-
-            // Time since last failure
-            const lastFailure = sorted.find(b => b.result === 'FAILURE');
-            let timeSinceFailure = null;
-            if (lastFailure && lastFailure.timestamp) {
-                const now = new Date();
-                const failTime = new Date(lastFailure.timestamp);
-                const diffMs = now - failTime;
-                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                const diffDays = Math.floor(diffHours / 24);
-
-                if (diffDays > 0) {
-                    timeSinceFailure = `${diffDays}d ago`;
-                } else if (diffHours > 0) {
-                    timeSinceFailure = `${diffHours}h ago`;
-                } else {
-                    timeSinceFailure = 'Recently';
-                }
-            }
-
-            return {
-                lastNPassed,
-                lastNTotal,
-                consecutiveFailures,
-                timeSinceFailure
-            };
-        }
-
         // Calculate summary statistics
         function calculateSummary(jobs) {
             const totalJobs = jobs.length;
@@ -1152,7 +1145,7 @@
             jobCount.textContent = `Showing ${jobs.length} of ${allJobs.length} jobs`;
 
             if (!jobs || jobs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No jobs match your filters</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="loading-row">No jobs match your filters</td></tr>';
                 return;
             }
 
@@ -1170,7 +1163,6 @@
                                   trend === 'stable' ? '<span class="trend-indicator trend-stable" title="Stable">→</span>' : '';
 
                 const sparkline = generateSparkline(job.recent_builds);
-                const quickStats = calculateQuickStats(job);
 
                 let mainRow = `
                     <tr class="${rowClass} expandable-row" data-job-index="${index}">
@@ -1178,18 +1170,11 @@
                             ${expandIcon}
                             <span class="health-icon">${healthIcon}</span>
                             <span>${escapeHtml(job.name)}</span>
-                            ${sparkline}
                             ${trendIcon}
-                            <div class="job-quick-stats">
-                                Last ${quickStats.lastNTotal}: ${quickStats.lastNPassed}/${quickStats.lastNTotal} passed
-                                ${quickStats.consecutiveFailures > 0 ? `<span class="consecutive-failures">${quickStats.consecutiveFailures} consecutive failures!</span>` : ''}
-                                ${quickStats.timeSinceFailure && job.failure > 0 ? `<span class="time-since-failure"> • Last failure: ${quickStats.timeSinceFailure}</span>` : ''}
-                            </div>
                         </td>
-                        <td>${job.total_runs}</td>
-                        <td>${job.success}</td>
-                        <td>${job.failure}</td>
-                        <td>${job.running}</td>
+                        <td class="sparkline-cell">${sparkline}</td>
+                        <td>${getLast20Summary(job)}</td>
+                        <td>${getLastFailureTime(job)}</td>
                         <td class="success-rate ${rateClass}">${job.success_rate.toFixed(1)}%</td>
                         <td>${formatDuration(job.avg_duration)}</td>
                     </tr>
@@ -1198,7 +1183,7 @@
                 // Add build history row for all jobs
                 mainRow += `
                     <tr class="failure-details-row" data-job-index="${index}">
-                        <td colspan="7">
+                        <td colspan="6">
                             <div class="failure-details">
                                 <div id="build-history-${index}"></div>
                             </div>
@@ -1272,7 +1257,6 @@
                                   trend === 'down' ? '<span class="trend-indicator trend-down">↘</span>' :
                                   trend === 'stable' ? '<span class="trend-indicator trend-stable">→</span>' : '';
                 const sparkline = generateSparkline(job.recent_builds);
-                const quickStats = calculateQuickStats(job);
                 const healthIcon = getHealthIcon(job.success_rate);
 
                 return `
@@ -1286,25 +1270,18 @@
                         </div>
                         <div class="job-card-stats">
                             <div class="job-card-stat">
-                                <div class="job-card-stat-label">Success</div>
-                                <div class="job-card-stat-value" style="color: var(--success-color)">${job.success}</div>
+                                <div class="job-card-stat-label">Last 20</div>
+                                <div class="job-card-stat-value">${getLast20Summary(job)}</div>
                             </div>
                             <div class="job-card-stat">
-                                <div class="job-card-stat-label">Failure</div>
-                                <div class="job-card-stat-value" style="color: var(--danger-color)">${job.failure}</div>
-                            </div>
-                            <div class="job-card-stat">
-                                <div class="job-card-stat-label">Running</div>
-                                <div class="job-card-stat-value" style="color: var(--info-color)">${job.running}</div>
+                                <div class="job-card-stat-label">Last Failure</div>
+                                <div class="job-card-stat-value">${getLastFailureTime(job)}</div>
                             </div>
                         </div>
                         <div style="margin-bottom: 8px;">
                             ${sparkline}
                         </div>
                         <div style="font-size: 12px; color: var(--text-secondary);">
-                            <div>Last ${quickStats.lastNTotal}: <strong>${quickStats.lastNPassed}/${quickStats.lastNTotal} passed</strong></div>
-                            ${quickStats.consecutiveFailures > 0 ? `<div style="color: var(--danger-color); font-weight: 600; margin-top: 4px;">⚠️ ${quickStats.consecutiveFailures} consecutive failures!</div>` : ''}
-                            ${quickStats.timeSinceFailure && job.failure > 0 ? `<div style="margin-top: 4px;">Last failure: ${quickStats.timeSinceFailure}</div>` : ''}
                             <div style="margin-top: 4px;">Avg time: ${formatDuration(job.avg_duration)}</div>
                         </div>
                     </div>
@@ -1498,7 +1475,7 @@
                 console.error('Error fetching stats:', error);
                 showAlert(`Error loading data: ${error.message}. Retrying...`, 'error');
                 document.getElementById('jobs-tbody').innerHTML =
-                    '<tr><td colspan="7" class="loading-row">Error loading data. Retrying...</td></tr>';
+                    '<tr><td colspan="6" class="loading-row">Error loading data. Retrying...</td></tr>';
             }
         }
 

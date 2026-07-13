@@ -686,6 +686,16 @@ th.job-name-col {
     width: 35%;
 }
 
+th.sparkline-col {
+    width: 250px;
+    text-align: center;
+}
+
+.sparkline-cell {
+    text-align: center;
+    padding: 8px 4px;
+}
+
 tbody tr {
     border-bottom: 1px solid var(--border-color);
     transition: background-color 0.2s;
