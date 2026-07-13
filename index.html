@@ -319,21 +319,30 @@
                 return '<span style="color: var(--text-secondary);">-</span>';
             }
 
-            const failureDate = new Date(lastFailure.timestamp);
+            // Ensure timestamp is treated as UTC by adding 'Z' if not present
+            const timestamp = lastFailure.timestamp.endsWith('Z') ? lastFailure.timestamp : lastFailure.timestamp + 'Z';
+            const failureDate = new Date(timestamp);
             const now = new Date();
             const diffMs = now - failureDate;
+
+            // Handle negative time (clock skew) - just show the UTC date
+            if (diffMs < 0) {
+                return failureDate.toISOString().replace('T', ' ').slice(0, 19);
+            }
+
             const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-            const diffDays = Math.floor(diffHours / 24);
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
             if (diffDays > 7) {
-                return failureDate.toLocaleDateString();
+                // Show full UTC date/time for older failures
+                return failureDate.toISOString().replace('T', ' ').slice(0, 19);
             } else if (diffDays > 0) {
                 return `${diffDays}d ago`;
             } else if (diffHours > 0) {
                 return `${diffHours}h ago`;
             } else {
                 const diffMins = Math.floor(diffMs / (1000 * 60));
-                return `${diffMins}m ago`;
+                return diffMins > 0 ? `${diffMins}m ago` : 'Just now';
             }
         }
 
@@ -931,7 +940,10 @@
                 else if (build.result === null) className += 'running';
                 else className += 'unknown';
 
-                return `<span class="${className}" title="${build.result || 'Running'} - ${build.timestamp ? new Date(build.timestamp).toLocaleString() : 'Unknown'}"></span>`;
+                // Ensure timestamp is treated as UTC
+                const utcTimestamp = build.timestamp ? (build.timestamp.endsWith('Z') ? build.timestamp : build.timestamp + 'Z') : null;
+                const utcTime = utcTimestamp ? new Date(utcTimestamp).toISOString().replace('T', ' ').slice(0, 19) + ' UTC' : 'Unknown';
+                return `<span class="${className}" title="${build.result || 'Running'} - ${utcTime}"></span>`;
             }).join('');
 
             return `<span class="sparkline">${dots}</span>`;
@@ -1319,7 +1331,7 @@
             let html = '<h4 style="margin-bottom: 12px;">Build History</h4>';
             html += '<table class="build-history-table">';
             html += '<thead><tr>';
-            html += '<th>Date/Time</th>';
+            html += '<th>Date/Time (UTC)</th>';
             html += '<th>Result</th>';
             html += '<th>Duration</th>';
             html += '<th>Branch</th>';
@@ -1331,7 +1343,9 @@
             html += '<tbody>';
 
             builds.forEach(build => {
-                const timestamp = build.timestamp ? new Date(build.timestamp).toLocaleString() : 'Unknown';
+                // Ensure timestamp is treated as UTC by adding 'Z' if not present
+                const utcTimestamp = build.timestamp ? (build.timestamp.endsWith('Z') ? build.timestamp : build.timestamp + 'Z') : null;
+                const timestamp = utcTimestamp ? new Date(utcTimestamp).toISOString().replace('T', ' ').slice(0, 19) : 'Unknown';
                 const statusClass = build.result === 'SUCCESS' ? 'build-status-success' :
                                   build.result === 'FAILURE' ? 'build-status-failure' :
                                   'build-status-running';
