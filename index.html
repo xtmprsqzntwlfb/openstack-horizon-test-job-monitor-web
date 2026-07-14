@@ -46,16 +46,6 @@
                     </div>
                 </div>
                 <div class="control-group">
-                    <label class="control-label" for="status-filter">📊 Status Filter</label>
-                    <select id="status-filter" class="input">
-                        <option value="all">All Jobs</option>
-                        <option value="healthy">Healthy (≥90%)</option>
-                        <option value="warning">Warning (70-89%)</option>
-                        <option value="failing">Failing (<70%)</option>
-                        <option value="has-running">Has Running</option>
-                    </select>
-                </div>
-                <div class="control-group">
                     <label class="control-label" for="sort-by">🔃 Sort By</label>
                     <select id="sort-by" class="input">
                         <option value="success-asc">Success Rate (Low to High)</option>
@@ -67,12 +57,20 @@
                     </select>
                 </div>
                 <div class="control-group">
-                    <label class="control-label" for="time-period-select">📅 Time Period</label>
+                    <label class="control-label" for="time-period-select" title="Only show builds within this time range. Combined with Builds Per Job: whichever limit is reached first.">📅 Time Period</label>
                     <select id="time-period-select" class="input">
                         <option value="1">Last 24 hours</option>
                         <option value="3">Last 3 days</option>
                         <option value="7" selected>Last 7 days</option>
                         <option value="30">Last 30 days</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="builds-per-job" title="Max recent builds per job. Combined with Time Period: whichever limit is reached first.">🔢 Builds Per Job</label>
+                    <select id="builds-per-job" class="input">
+                        <option value="20" selected>20 builds</option>
+                        <option value="50">50 builds</option>
+                        <option value="100">100 builds</option>
                     </select>
                 </div>
             </div>
@@ -200,7 +198,7 @@
                 </select>
             </div>
             <div class="control-group" style="margin-top: 12px;">
-                <label class="control-label" title="Number of recent builds to display per job">Builds Per Job</label>
+                <label class="control-label" title="Max recent builds per job. Combined with Time Period: whichever limit is reached first.">Builds Per Job</label>
                 <select id="builds-per-job-select" class="input">
                     <option value="20" selected>20 builds</option>
                     <option value="50">50 builds</option>
@@ -271,6 +269,7 @@
             document.getElementById('notify-failures-toggle').classList.toggle('active', settings.notifyOnFailures);
             document.getElementById('refresh-interval-select').value = settings.refreshInterval / 1000;
             document.getElementById('builds-per-job-select').value = settings.buildsPerJob;
+            document.getElementById('builds-per-job').value = settings.buildsPerJob;
             const timePeriodValue = (settings.timePeriod === null || settings.timePeriod === 'all') ? 'all' : settings.timePeriod.toString();
             document.getElementById('time-period-select').value = timePeriodValue;
         }
@@ -377,8 +376,6 @@
             buttonElement.innerHTML = '🔗 Generating Links...';
 
             try {
-                console.log('Generating tox log links for:', logUrl);
-
                 // Construct common tox log URLs
                 const baseUrl = logUrl.endsWith('/') ? logUrl : logUrl + '/';
                 const toxBaseUrl = baseUrl + 'tox/';
@@ -451,7 +448,6 @@
                 }
 
                 const html = await response.text();
-                console.log('Received tox directory HTML');
 
                 // Parse directory listing to find tox environments (pep8, py39, etc.)
                 const parser = new DOMParser();
@@ -470,8 +466,6 @@
                     }
                 });
 
-                console.log('Found tox environments:', envDirs);
-
                 // Fetch logs for each environment
                 for (const envName of envDirs.slice(0, 5)) { // Limit to first 5 environments
                     const envUrl = toxDirUrl + envName + '/';
@@ -486,8 +480,6 @@
 
                             if (logResponse.ok) {
                                 const logText = await logResponse.text();
-                                console.log(`Found log for ${envName}: ${logFile}`);
-
                                 // Parse the log for errors
                                 const envResult = parseToxEnvLog(envName, logText);
                                 summary.toxEnvironments.push(envResult);
@@ -499,7 +491,7 @@
                                 break; // Found a log file, move to next env
                             }
                         } catch (e) {
-                            console.log(`Could not fetch ${logFile} for ${envName}`);
+                            // Log file not found, try next
                         }
                     }
                 }
@@ -650,12 +642,6 @@
                     });
                 }
 
-                console.log('Parsed Zuul build data:', {
-                    plays: buildData.plays?.length || 0,
-                    failedTasks: summary.failedTasks.length,
-                    taskResults: summary.taskResults.length
-                });
-
             } catch (error) {
                 console.error('Error parsing Zuul build data:', error);
                 summary.parseError = error.message;
@@ -722,7 +708,6 @@
                 limit: limit.toString()
             });
 
-            console.log(`Fetching builds: ${url}?${params}`);
             const response = await fetch(`${url}?${params}`, {
                 method: 'GET',
                 headers: {
@@ -735,7 +720,6 @@
             }
 
             const builds = await response.json();
-            console.log(`Fetched ${builds.length} builds. Latest:`, builds[0]?.end_time, 'Oldest:', builds[builds.length - 1]?.end_time);
             return builds;
         }
 
@@ -744,8 +728,6 @@
             const jobData = {};
             const now = new Date();
             const cutoffTime = timePeriodDays ? new Date(now - timePeriodDays * 24 * 60 * 60 * 1000) : null;
-
-            console.log(`Processing ${builds.length} builds. Time period: ${timePeriodDays} days. Cutoff: ${cutoffTime}`);
 
             let filteredCount = 0;
             builds.forEach(build => {
@@ -820,10 +802,6 @@
                     branch: build.branch || (build.ref && build.ref.branch) || null
                 });
 
-                // Debug: log first build for openstack-tox-pep8
-                if (jobName === 'openstack-tox-pep8' && job.recentBuilds.length === 1) {
-                    console.log(`First build for ${jobName}:`, build.end_time, build.result);
-                }
             });
 
             // Convert to array with statistics
@@ -852,7 +830,6 @@
                 };
             });
 
-            console.log(`Processed ${jobs.length} jobs. Filtered out ${filteredCount} old builds.`);
             return jobs;
         }
 
@@ -1080,7 +1057,6 @@
 
         // Filter and sort jobs
         function filterAndSortJobs() {
-            const statusFilter = document.getElementById('status-filter').value;
             const sortBy = document.getElementById('sort-by').value;
 
             // Filter
@@ -1089,12 +1065,6 @@
                 if (selectedJobs.size > 0 && !selectedJobs.has(job.name)) {
                     return false;
                 }
-
-                // Status filter
-                if (statusFilter === 'healthy' && job.success_rate < 90) return false;
-                if (statusFilter === 'warning' && (job.success_rate < 70 || job.success_rate >= 90)) return false;
-                if (statusFilter === 'failing' && job.success_rate >= 70) return false;
-                if (statusFilter === 'has-running' && job.running === 0) return false;
 
                 return true;
             });
@@ -1323,8 +1293,6 @@
             const builds = [...job.recent_builds].sort((a, b) =>
                 new Date(b.timestamp) - new Date(a.timestamp)
             );
-
-            console.log('Build history data:', builds);
 
             let html = '<h4 style="margin-bottom: 12px;">Build History</h4>';
             html += '<table class="build-history-table">';
@@ -1628,7 +1596,6 @@
             });
 
             // Other filters
-            document.getElementById('status-filter').addEventListener('change', filterAndSortJobs);
             document.getElementById('sort-by').addEventListener('change', filterAndSortJobs);
             document.getElementById('time-period-select').addEventListener('change', function() {
                 const value = this.value;
@@ -1679,8 +1646,17 @@
 
             document.getElementById('builds-per-job-select').addEventListener('change', function() {
                 settings.buildsPerJob = parseInt(this.value);
+                document.getElementById('builds-per-job').value = this.value;
                 saveSettings();
                 document.getElementById('apply-changes-btn').classList.add('visible');
+            });
+
+            // Main page builds per job dropdown
+            document.getElementById('builds-per-job').addEventListener('change', function() {
+                settings.buildsPerJob = parseInt(this.value);
+                document.getElementById('builds-per-job-select').value = this.value;
+                saveSettings();
+                fetchStats();
             });
 
             document.getElementById('apply-changes-btn').addEventListener('click', async function() {
