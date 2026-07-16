@@ -46,17 +46,6 @@
                     </div>
                 </div>
                 <div class="control-group">
-                    <label class="control-label" for="sort-by">🔃 Sort By</label>
-                    <select id="sort-by" class="input">
-                        <option value="success-asc">Success Rate (Low to High)</option>
-                        <option value="success-desc">Success Rate (High to Low)</option>
-                        <option value="name-asc">Job Name (A-Z)</option>
-                        <option value="name-desc">Job Name (Z-A)</option>
-                        <option value="total-desc">Total Runs (High to Low)</option>
-                        <option value="duration-desc">Avg Duration (High to Low)</option>
-                    </select>
-                </div>
-                <div class="control-group">
                     <label class="control-label" for="time-period-select" title="Only show builds within this time range. Combined with Builds Per Job: whichever limit is reached first.">📅 Time Period</label>
                     <select id="time-period-select" class="input">
                         <option value="1">Last 24 hours</option>
@@ -71,6 +60,16 @@
                         <option value="20" selected>20 builds</option>
                         <option value="50">50 builds</option>
                         <option value="100">100 builds</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="refresh-interval" title="How often to automatically fetch new data from Zuul CI.">🔄 Refresh</label>
+                    <select id="refresh-interval" class="input">
+                        <option value="300">5 min</option>
+                        <option value="600">10 min</option>
+                        <option value="900">15 min</option>
+                        <option value="1800">30 min</option>
+                        <option value="3600">1 hour</option>
                     </select>
                 </div>
             </div>
@@ -142,7 +141,7 @@
         </div>
 
         <footer>
-            <p>Auto-refreshing every 5 minutes | Data from <a href="https://zuul.opendev.org" target="_blank">Zuul CI</a></p>
+            <p><span id="refresh-footer-text">Auto-refreshing every 5 minutes</span> | Data from <a href="https://zuul.opendev.org" target="_blank">Zuul CI</a></p>
             <p style="margin-top: 8px; font-size: 12px;">
                 <a href="https://github.com/xtmprsqzntwlfb/openstack-horizon-test-job-monitor-web" target="_blank">Source Code</a>
             </p>
@@ -180,35 +179,6 @@
             </div>
         </div>
 
-        <div class="settings-group">
-            <h4>Data</h4>
-            <div class="control-group">
-                <label class="control-label">Refresh Interval</label>
-                <select id="refresh-interval-select" class="input">
-                    <option value="300" selected>5 minutes</option>
-                    <option value="600">10 minutes</option>
-                    <option value="900">15 minutes</option>
-                    <option value="1800">30 minutes</option>
-                    <option value="3600">1 hour</option>
-                    <option value="7200">2 hours</option>
-                    <option value="14400">4 hours</option>
-                    <option value="28800">8 hours</option>
-                    <option value="43200">12 hours</option>
-                    <option value="86400">24 hours</option>
-                </select>
-            </div>
-            <div class="control-group" style="margin-top: 12px;">
-                <label class="control-label" title="Max recent builds per job. Combined with Time Period: whichever limit is reached first.">Builds Per Job</label>
-                <select id="builds-per-job-select" class="input">
-                    <option value="20" selected>20 builds</option>
-                    <option value="50">50 builds</option>
-                    <option value="100">100 builds</option>
-                </select>
-            </div>
-            <button id="apply-changes-btn" class="btn apply-changes-btn">
-                ↻ Refresh to Apply Changes
-            </button>
-        </div>
     </div>
 
     <script>
@@ -239,8 +209,10 @@
         let allJobs = [];
         let filteredJobs = [];
         let previousFailures = new Set();
-        let selectedJobs = new Set(); // Track selected jobs for filtering
-        let availableJobs = []; // All available job names
+        let selectedJobs = new Set();
+        let availableJobs = [];
+        let currentSortField = 'success';
+        let currentSortDirection = 'asc';
 
         // ============================================================================
         // SETTINGS MANAGEMENT
@@ -267,11 +239,20 @@
             document.getElementById('health-icons-toggle').classList.toggle('active', settings.showHealthIcons);
             document.getElementById('notifications-toggle').classList.toggle('active', settings.desktopNotifications);
             document.getElementById('notify-failures-toggle').classList.toggle('active', settings.notifyOnFailures);
-            document.getElementById('refresh-interval-select').value = settings.refreshInterval / 1000;
-            document.getElementById('builds-per-job-select').value = settings.buildsPerJob;
+            document.getElementById('refresh-interval').value = settings.refreshInterval / 1000;
             document.getElementById('builds-per-job').value = settings.buildsPerJob;
             const timePeriodValue = (settings.timePeriod === null || settings.timePeriod === 'all') ? 'all' : settings.timePeriod.toString();
             document.getElementById('time-period-select').value = timePeriodValue;
+            updateRefreshFooter();
+        }
+
+        function updateRefreshFooter() {
+            const seconds = settings.refreshInterval / 1000;
+            let label;
+            if (seconds < 60) label = `${seconds} seconds`;
+            else if (seconds < 3600) label = `${seconds / 60} minutes`;
+            else label = `${seconds / 3600} hour${seconds >= 7200 ? 's' : ''}`;
+            document.getElementById('refresh-footer-text').textContent = `Auto-refreshing every ${label}`;
         }
 
         // Get health icon based on success rate
@@ -1055,31 +1036,42 @@
             });
         }
 
+        function getLast20PassCount(job) {
+            const recent = job.recent_builds || [];
+            const total = Math.min(recent.length, 20);
+            if (total === 0) return -1;
+            return recent.slice(0, 20).filter(b => b.result === 'SUCCESS').length;
+        }
+
+        function getLastFailureTimestamp(job) {
+            const recent = job.recent_builds || [];
+            const lastFailure = recent.find(b => b.result === 'FAILURE');
+            if (!lastFailure || !lastFailure.timestamp) return 0;
+            const ts = lastFailure.timestamp.endsWith('Z') ? lastFailure.timestamp : lastFailure.timestamp + 'Z';
+            return new Date(ts).getTime();
+        }
+
         // Filter and sort jobs
         function filterAndSortJobs() {
-            const sortBy = document.getElementById('sort-by').value;
-
             // Filter
             filteredJobs = allJobs.filter(job => {
-                // Job selection filter
                 if (selectedJobs.size > 0 && !selectedJobs.has(job.name)) {
                     return false;
                 }
-
                 return true;
             });
 
             // Sort
-            const [field, direction] = sortBy.split('-');
             filteredJobs.sort((a, b) => {
                 let aVal, bVal;
 
-                switch (field) {
+                switch (currentSortField) {
                     case 'name':
                         aVal = a.name;
                         bVal = b.name;
                         break;
                     case 'success':
+                    case 'rate':
                         aVal = a.success_rate;
                         bVal = b.success_rate;
                         break;
@@ -1091,18 +1083,28 @@
                         aVal = a.avg_duration;
                         bVal = b.avg_duration;
                         break;
+                    case 'last20':
+                        aVal = getLast20PassCount(a);
+                        bVal = getLast20PassCount(b);
+                        break;
+                    case 'lastfailure':
+                        aVal = getLastFailureTimestamp(a);
+                        bVal = getLastFailureTimestamp(b);
+                        break;
                     default:
                         return 0;
                 }
 
                 if (typeof aVal === 'string') {
-                    return direction === 'asc'
+                    return currentSortDirection === 'asc'
                         ? aVal.localeCompare(bVal)
                         : bVal.localeCompare(aVal);
                 }
 
-                return direction === 'asc' ? aVal - bVal : bVal - aVal;
+                return currentSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
             });
+
+            updateSortIndicators();
 
             // Render based on current view
             const currentView = document.querySelector('.view-toggle-btn.active').getAttribute('data-view');
@@ -1111,6 +1113,17 @@
             } else {
                 updateJobsTable(filteredJobs);
             }
+        }
+
+        function updateSortIndicators() {
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+                const field = th.getAttribute('data-sort');
+                if (field === currentSortField || (field === 'rate' && currentSortField === 'success')) {
+                    th.classList.add(currentSortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                }
+            });
+
         }
 
         // ============================================================================
@@ -1595,13 +1608,31 @@
                 filterAndSortJobs();
             });
 
-            // Other filters
-            document.getElementById('sort-by').addEventListener('change', filterAndSortJobs);
+            // Clickable column headers
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.style.cursor = 'pointer';
+                th.addEventListener('click', function() {
+                    const field = this.getAttribute('data-sort');
+                    if (currentSortField === field || (field === 'rate' && currentSortField === 'success')) {
+                        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSortField = field;
+                        currentSortDirection = field === 'name' ? 'asc' : 'desc';
+                    }
+                    filterAndSortJobs();
+                });
+            });
             document.getElementById('time-period-select').addEventListener('change', function() {
                 const value = this.value;
                 settings.timePeriod = value === 'all' ? 'all' : parseInt(value);
                 saveSettings();
-                fetchStats(); // Refetch with new time period
+                fetchStats();
+            });
+            document.getElementById('refresh-interval').addEventListener('change', function() {
+                settings.refreshInterval = parseInt(this.value) * 1000;
+                saveSettings();
+                resetRefreshTimer();
+                applySettings();
             });
 
             // Settings toggles
@@ -1637,32 +1668,10 @@
                 applySettings();
             });
 
-            document.getElementById('refresh-interval-select').addEventListener('change', function() {
-                settings.refreshInterval = parseInt(this.value) * 1000;
-                saveSettings();
-                resetRefreshTimer();
-                document.getElementById('apply-changes-btn').classList.add('visible');
-            });
-
-            document.getElementById('builds-per-job-select').addEventListener('change', function() {
-                settings.buildsPerJob = parseInt(this.value);
-                document.getElementById('builds-per-job').value = this.value;
-                saveSettings();
-                document.getElementById('apply-changes-btn').classList.add('visible');
-            });
-
-            // Main page builds per job dropdown
             document.getElementById('builds-per-job').addEventListener('change', function() {
                 settings.buildsPerJob = parseInt(this.value);
-                document.getElementById('builds-per-job-select').value = this.value;
                 saveSettings();
                 fetchStats();
-            });
-
-            document.getElementById('apply-changes-btn').addEventListener('click', async function() {
-                this.classList.remove('visible');
-                toggleSettingsPanel();
-                await forceRefresh();
             });
 
             // Initial fetch
