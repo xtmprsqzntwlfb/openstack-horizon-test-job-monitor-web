@@ -10,14 +10,24 @@
 <body data-theme="dark">
     <div class="container">
         <header>
-            <h1>📊 OpenStack Horizon Test Job Monitor</h1>
-            <div class="header-info">
-                <span id="last-update">Loading...</span>
+            <div class="header-top">
+                <h1>📊 OpenStack Horizon Test Job Monitor</h1>
                 <div class="header-actions">
                     <button id="settings-btn" class="btn btn-secondary btn-icon" title="Settings">⚙️</button>
                     <button id="export-btn" class="btn btn-secondary" title="Export to CSV">📥 Export</button>
                     <button id="refresh-btn" class="btn">↻ Refresh</button>
                 </div>
+            </div>
+            <div class="header-stats">
+                <span id="last-update">Loading...</span>
+                <span class="stat-separator">|</span>
+                <span class="stat-item"><span class="stat-label">Jobs:</span> <span id="total-jobs">-</span></span>
+                <span class="stat-separator">|</span>
+                <span class="stat-item stat-success"><span class="stat-label">Passed:</span> <span id="total-success">-</span> <span class="stat-pct" id="success-percentage">(-.-%)</span></span>
+                <span class="stat-separator">|</span>
+                <span class="stat-item stat-failure"><span class="stat-label">Failed:</span> <span id="total-failure">-</span></span>
+                <span class="stat-separator">|</span>
+                <span class="stat-item stat-running"><span class="stat-label">Running:</span> <span id="total-running">-</span></span>
             </div>
         </header>
 
@@ -75,35 +85,6 @@
             </div>
         </div>
 
-        <div class="summary-section">
-            <h2>📈 Summary</h2>
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <div class="summary-label">Total Jobs</div>
-                    <div class="summary-value" id="total-jobs">-</div>
-                </div>
-                <div class="summary-card success">
-                    <div class="summary-label">Success</div>
-                    <div class="summary-value">
-                        <span id="total-success">-</span>
-                        <span class="summary-percentage" id="success-percentage">(-.-%)</span>
-                    </div>
-                </div>
-                <div class="summary-card failure">
-                    <div class="summary-label">Failure</div>
-                    <div class="summary-value" id="total-failure">-</div>
-                </div>
-                <div class="summary-card running">
-                    <div class="summary-label">Running</div>
-                    <div class="summary-value" id="total-running">-</div>
-                </div>
-            </div>
-
-            <div class="chart-container">
-                <div class="chart-title">Success Rate Distribution</div>
-                <div id="chart-bars"></div>
-            </div>
-        </div>
 
         <div class="jobs-section">
             <div class="section-header">
@@ -935,50 +916,7 @@
             document.getElementById('total-running').textContent = summary.total_running;
         }
 
-        // Update success rate chart
-        function updateChart(jobs) {
-            const chartBars = document.getElementById('chart-bars');
 
-            // Calculate distribution
-            const healthy = jobs.filter(j => j.success_rate >= 90).length;
-            const warning = jobs.filter(j => j.success_rate >= 70 && j.success_rate < 90).length;
-            const failing = jobs.filter(j => j.success_rate < 70).length;
-            const total = jobs.length || 1;
-
-            const healthyPct = (healthy / total) * 100;
-            const warningPct = (warning / total) * 100;
-            const failingPct = (failing / total) * 100;
-
-            chartBars.innerHTML = `
-                <div class="chart-bar-wrapper">
-                    <div class="chart-label">Healthy (≥90%)</div>
-                    <div class="chart-bar-container">
-                        <div class="chart-bar">
-                            <div class="chart-bar-fill success" style="width: ${healthyPct}%"></div>
-                        </div>
-                        <div class="chart-count">${healthy} jobs <span class="percentage">(${healthyPct.toFixed(1)}%)</span></div>
-                    </div>
-                </div>
-                <div class="chart-bar-wrapper">
-                    <div class="chart-label">Warning (70-89%)</div>
-                    <div class="chart-bar-container">
-                        <div class="chart-bar">
-                            <div class="chart-bar-fill warning" style="width: ${warningPct}%"></div>
-                        </div>
-                        <div class="chart-count">${warning} jobs <span class="percentage">(${warningPct.toFixed(1)}%)</span></div>
-                    </div>
-                </div>
-                <div class="chart-bar-wrapper">
-                    <div class="chart-label">Failing (<70%)</div>
-                    <div class="chart-bar-container">
-                        <div class="chart-bar">
-                            <div class="chart-bar-fill danger" style="width: ${failingPct}%"></div>
-                        </div>
-                        <div class="chart-count">${failing} jobs <span class="percentage">(${failingPct.toFixed(1)}%)</span></div>
-                    </div>
-                </div>
-            `;
-        }
 
         // Populate job selector dropdown
         function populateJobSelector() {
@@ -1454,7 +1392,6 @@
 
                 const summary = calculateSummary(allJobs);
                 updateSummary(summary);
-                updateChart(allJobs);
 
                 populateJobSelector();
                 filterAndSortJobs();
