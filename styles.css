@@ -91,8 +91,8 @@ h1 {
 }
 
 .stat-success .stat-label { color: var(--success-color); }
-.stat-failure .stat-label { color: var(--failure-color); }
-.stat-running .stat-label { color: var(--running-color); }
+.stat-failure .stat-label { color: var(--danger-color); }
+.stat-running .stat-label { color: var(--info-color); }
 
 .stat-pct {
     font-weight: normal;
