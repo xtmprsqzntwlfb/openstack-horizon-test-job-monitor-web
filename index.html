@@ -146,6 +146,10 @@
                 <span class="setting-label">Show Health Icons</span>
                 <div class="toggle-switch active" id="health-icons-toggle"></div>
             </div>
+            <div class="setting-item">
+                <span class="setting-label">Show Trend Indicators</span>
+                <div class="toggle-switch active" id="trend-toggle"></div>
+            </div>
         </div>
 
         <div class="settings-group">
@@ -180,6 +184,7 @@
             buildsPerJob: 20, // Number of recent builds to keep per job
             theme: 'dark',
             showHealthIcons: true,
+            showTrendIndicators: true,
             desktopNotifications: false,
             notifyOnFailures: false,
             timePeriod: 7 // days
@@ -218,6 +223,7 @@
             document.body.setAttribute('data-theme', settings.theme);
             document.getElementById('theme-toggle-switch').classList.toggle('active', settings.theme === 'dark');
             document.getElementById('health-icons-toggle').classList.toggle('active', settings.showHealthIcons);
+            document.getElementById('trend-toggle').classList.toggle('active', settings.showTrendIndicators);
             document.getElementById('notifications-toggle').classList.toggle('active', settings.desktopNotifications);
             document.getElementById('notify-failures-toggle').classList.toggle('active', settings.notifyOnFailures);
             document.getElementById('refresh-interval').value = settings.refreshInterval / 1000;
@@ -1087,8 +1093,7 @@
                 const hasFailures = job.failure > 0 && job.failure_reasons && job.failure_reasons.length > 0;
                 const expandIcon = '<span class="expand-icon">▶</span>';
 
-                // Calculate trend and quick stats
-                const trend = calculateTrend(job.recent_builds);
+                const trend = settings.showTrendIndicators ? calculateTrend(job.recent_builds) : null;
                 const trendIcon = trend === 'up' ? '<span class="trend-indicator trend-up" title="Improving">↗</span>' :
                                   trend === 'down' ? '<span class="trend-indicator trend-down" title="Degrading">↘</span>' :
                                   trend === 'stable' ? '<span class="trend-indicator trend-stable" title="Stable">→</span>' : '';
@@ -1183,7 +1188,7 @@
 
             cardsContainer.innerHTML = jobs.map(job => {
                 const rateClass = getSuccessRateClass(job.success_rate);
-                const trend = calculateTrend(job.recent_builds);
+                const trend = settings.showTrendIndicators ? calculateTrend(job.recent_builds) : null;
                 const trendIcon = trend === 'up' ? '<span class="trend-indicator trend-up">↗</span>' :
                                   trend === 'down' ? '<span class="trend-indicator trend-down">↘</span>' :
                                   trend === 'stable' ? '<span class="trend-indicator trend-stable">→</span>' : '';
@@ -1581,6 +1586,13 @@
 
             document.getElementById('health-icons-toggle').addEventListener('click', function() {
                 settings.showHealthIcons = !settings.showHealthIcons;
+                saveSettings();
+                applySettings();
+                filterAndSortJobs();
+            });
+
+            document.getElementById('trend-toggle').addEventListener('click', function() {
+                settings.showTrendIndicators = !settings.showTrendIndicators;
                 saveSettings();
                 applySettings();
                 filterAndSortJobs();
