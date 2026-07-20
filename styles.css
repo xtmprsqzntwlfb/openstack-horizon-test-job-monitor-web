@@ -300,11 +300,6 @@ h1 {
     background: var(--bg-card);
 }
 
-.job-selector-count {
-    color: var(--text-secondary);
-    font-size: 12px;
-}
-
 .sparkline {
     display: inline-flex;
     gap: 2px;
@@ -352,48 +347,6 @@ h1 {
 
 .trend-stable {
     color: var(--text-secondary);
-}
-
-.job-quick-stats {
-    font-size: 11px;
-    color: var(--text-secondary);
-    margin-top: 4px;
-}
-
-.consecutive-failures {
-    color: var(--danger-color);
-    font-weight: 600;
-    margin-left: 6px;
-}
-
-.last-n-builds {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 4px;
-}
-
-.builds-bar {
-    display: inline-block;
-    width: 60px;
-    height: 6px;
-    background: var(--border-color);
-    border-radius: 3px;
-    overflow: hidden;
-    position: relative;
-}
-
-.builds-bar-fill {
-    height: 100%;
-    background: var(--success-color);
-    border-radius: 3px;
-    transition: width 0.3s;
-}
-
-.time-since-failure {
-    color: var(--text-secondary);
-    font-size: 11px;
-    font-style: italic;
 }
 
 .view-toggle {
@@ -464,7 +417,7 @@ h1 {
 
 .job-card-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
     margin-bottom: 12px;
 }
@@ -625,11 +578,6 @@ td {
     gap: 6px;
 }
 
-.trend-icon {
-    font-size: 12px;
-    opacity: 0.7;
-}
-
 .rate-high {
     color: var(--success-color);
 }
@@ -685,30 +633,6 @@ td {
 .failure-details {
     padding: 16px;
     border-top: 1px solid var(--border-color);
-}
-
-.failure-reason {
-    margin-bottom: 12px;
-    padding: 12px;
-    background: var(--bg-secondary);
-    border-radius: 6px;
-    border-left: 3px solid var(--danger-color);
-}
-
-.failure-reason-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-    font-weight: 500;
-}
-
-.failure-count {
-    background: var(--danger-color);
-    color: white;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
 }
 
 .build-history-table {
@@ -767,104 +691,6 @@ td {
 
 [data-theme="light"] .build-history-table a:hover {
     color: #1565c0;
-}
-
-.failure-error {
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-family: 'Courier New', monospace;
-    margin-top: 6px;
-}
-
-.failure-links {
-    margin-top: 8px;
-    font-size: 12px;
-}
-
-.failure-links a {
-    color: var(--accent-color);
-    text-decoration: none;
-    margin-right: 12px;
-}
-
-.failure-links a:hover {
-    text-decoration: underline;
-}
-
-.analyze-log-btn {
-    padding: 4px 10px;
-    background: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 11px;
-    margin-top: 8px;
-    transition: opacity 0.2s;
-}
-
-.analyze-log-btn:hover {
-    opacity: 0.8;
-}
-
-.analyze-log-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.log-summary {
-    margin-top: 12px;
-    padding: 12px;
-    background: var(--bg-secondary);
-    border-radius: 6px;
-    border-left: 3px solid var(--accent-color);
-}
-
-.log-summary-header {
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-primary);
-}
-
-.log-summary-content {
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    color: var(--text-primary);
-    white-space: pre-wrap;
-    max-height: 300px;
-    overflow-y: auto;
-    line-height: 1.6;
-}
-
-.log-link {
-    color: #90caf9 !important;
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.log-link:hover {
-    color: #64b5f6 !important;
-    text-decoration: underline;
-}
-
-[data-theme="light"] .log-link {
-    color: #1976d2 !important;
-}
-
-[data-theme="light"] .log-link:hover {
-    color: #1565c0 !important;
-}
-
-.log-error {
-    color: var(--danger-color);
-    margin-top: 8px;
-    font-size: 12px;
-}
-
-.log-loading {
-    color: var(--accent-color);
-    margin-top: 8px;
-    font-size: 12px;
 }
 
 .alert {
@@ -954,17 +780,6 @@ td {
 
 .setting-label {
     font-size: 14px;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 .toggle-switch {
