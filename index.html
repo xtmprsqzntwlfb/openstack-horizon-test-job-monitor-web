@@ -180,7 +180,7 @@
 
         // Settings with defaults
         let settings = {
-            refreshInterval: 300000, // 5 minutes
+            refreshInterval: 900000, // 15 minutes
             buildsPerJob: 20, // Number of recent builds to keep per job
             theme: 'dark',
             showHealthIcons: true,
@@ -1216,6 +1216,7 @@
                 settings.timePeriod = value === 'all' ? 'all' : parseInt(value);
                 saveSettings();
                 fetchStats();
+                resetRefreshTimer();
             });
             document.getElementById('refresh-interval').addEventListener('change', function() {
                 settings.refreshInterval = parseInt(this.value) * 1000;
@@ -1268,6 +1269,7 @@
                 settings.buildsPerJob = parseInt(this.value);
                 saveSettings();
                 fetchStats();
+                resetRefreshTimer();
             });
 
             // Initial fetch
