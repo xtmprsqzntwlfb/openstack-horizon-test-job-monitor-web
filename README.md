@@ -30,22 +30,17 @@ python3 -m http.server 8000
 
 ## How It Works
 
-1. **Fetches data** directly from [Zuul CI API](https://zuul.opendev.org/openapi) for openstack/horizon builds
-2. **Processes build statistics** in the browser - success/failure rates, trends, durations
-3. **Displays real-time metrics** with color-coded indicators and sparklines
-4. **Tracks build history** - shows when jobs ran and on which Gerrit patches or branch commits
-   - Pre-merge builds: Links to Gerrit reviews (e.g., `123456,7`)
-   - Post-merge builds: Shows branch names (e.g., `stable/2025.1`)
-5. **Auto-refreshes** at configurable intervals (30s to 10min)
-6. **Saves preferences** to browser localStorage (theme, filters, time periods)
+1. Fetches data directly from [Zuul CI API](https://zuul.opendev.org/openapi) for openstack/horizon builds
+2. Processes build statistics in the browser: success/failure rates, trends, durations
+3. Displays metrics in a sortable jobs table with sparklines, trend indicators, and expandable build history per job
+4. Shows when jobs ran and on which Gerrit patches or branch commits:
+   - check/gate pipelines: links to Gerrit reviews (e.g., `123456,7`)
+   - post-merge pipelines: shows branch names (e.g., `stable/2025.1`)
+   - periodic and experimental jobs: scheduled builds running on branch heads
+5. Auto-refreshes at configurable intervals
+6. Saves preferences to browser localStorage (theme, filters, time periods, refresh interval)
 
-All processing happens client-side - no backend server required!
-
-### Build Types Monitored
-
-- **Check/Gate pipelines**: Pre-merge verification on Gerrit reviews (`refs/changes/...`)
-- **Post-merge pipelines**: Verification after merging to master/stable branches (`refs/heads/...`)
-- **Periodic jobs**: Scheduled builds running on branch heads
+All processing happens client-side, no backend server required!
 
 
 ## Links
