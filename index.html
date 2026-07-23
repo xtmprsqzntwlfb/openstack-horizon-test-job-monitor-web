@@ -1087,16 +1087,28 @@
 
         // Export data to CSV
         function exportToCSV() {
-            const headers = ['Job Name', 'Total Runs', 'Success', 'Failure', 'Running', 'Success Rate %', 'Avg Duration (s)'];
-            const rows = filteredJobs.map(job => [
-                job.name,
-                job.total_runs,
-                job.success,
-                job.failure,
-                job.running,
-                job.success_rate.toFixed(2),
-                job.avg_duration.toFixed(0)
-            ]);
+            const headers = ['Job Name', 'Last 20', 'Last Failure', 'Success %', 'Avg Time (min)'];
+            const rows = filteredJobs.map(job => {
+                const recent = job.recent_builds || [];
+                const total = Math.min(recent.length, 20);
+                const passed = recent.slice(0, 20).filter(b => b.result === 'SUCCESS').length;
+                const last20 = total > 0 ? `${passed}/${total} passed` : 'No data';
+
+                const lastFailure = recent.find(b => b.result === 'FAILURE');
+                let lastFailureStr = '-';
+                if (lastFailure && lastFailure.timestamp) {
+                    const ts = lastFailure.timestamp.endsWith('Z') ? lastFailure.timestamp : lastFailure.timestamp + 'Z';
+                    lastFailureStr = new Date(ts).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+                }
+
+                return [
+                    job.name,
+                    last20,
+                    lastFailureStr,
+                    job.success_rate.toFixed(1),
+                    (job.avg_duration / 60).toFixed(1)
+                ];
+            });
 
             const csv = [
                 headers.join(','),
@@ -1107,7 +1119,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `horizon-jobs-${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `horizon-jobs-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.csv`;
             a.click();
             URL.revokeObjectURL(url);
 
