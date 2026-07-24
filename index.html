@@ -1110,10 +1110,40 @@
                 ];
             });
 
-            const csv = [
+            const csvLines = [
                 headers.join(','),
                 ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-            ].join('\n');
+            ];
+
+            csvLines.push('');
+            csvLines.push('');
+            const buildHeaders = ['Job Name', 'Date/Time (UTC)', 'Result', 'Duration', 'Branch', 'Pipeline', 'Change', 'Build URL', 'Logs URL'];
+            csvLines.push(buildHeaders.join(','));
+
+            filteredJobs.forEach(job => {
+                const builds = [...(job.recent_builds || [])].sort((a, b) =>
+                    new Date(b.timestamp) - new Date(a.timestamp)
+                );
+                builds.forEach(build => {
+                    const ts = build.timestamp ? (build.timestamp.endsWith('Z') ? build.timestamp : build.timestamp + 'Z') : '';
+                    const dateStr = ts ? new Date(ts).toISOString().replace('T', ' ').slice(0, 19) : '';
+                    const duration = build.duration ? formatDuration(build.duration) : '';
+                    const branch = build.branch || '';
+                    const pipeline = build.pipeline || '';
+
+                    let change = '';
+                    if (build.change) change = build.change;
+                    else if (build.ref && build.ref.change) change = build.ref.change;
+
+                    const buildUrl = build.uuid ? `https://zuul.opendev.org/t/openstack/build/${build.uuid}` : '';
+                    const logUrl = build.log_url || '';
+
+                    csvLines.push([job.name, dateStr, build.result || '', duration, branch, pipeline, change, buildUrl, logUrl]
+                        .map(cell => `"${cell}"`).join(','));
+                });
+            });
+
+            const csv = csvLines.join('\n');
 
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
